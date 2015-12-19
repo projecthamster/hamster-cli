@@ -1,0 +1,9 @@
+# This file specifies all packages required for local development
+
+-r ./docs.txt
+-r ./test.txt
+
+bumpversion==0.5.3
+ipython==4.0.0
+wheel==0.23.0
+watchdog==0.8.3
