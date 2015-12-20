@@ -12,6 +12,11 @@ hamster_cli
         :target: https://readthedocs.org/projects/hamster_cli/?badge=latest
         :alt: Documentation Status
 
+.. image:: https://badge.waffle.io/elbenfreund/hamsterlib.png?label=ready&title=Ready
+        :target: https://waffle.io/elbenfreund/hamsterlib
+        :alt: 'Stories in Ready'
+
+
 
 A basic CLI for the hamster time tracker.
 
