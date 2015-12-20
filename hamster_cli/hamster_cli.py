@@ -44,6 +44,8 @@ client_config = {
 class Controler(HamsterControl):
     def __init__(self):
         super(Controler, self).__init__(store_config)
+        self.client_config = client_config
+        self.dbus = False
 
 pass_controler = click.make_pass_decorator(Controler, ensure=True)
 
@@ -51,6 +53,7 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @click.group()
 @pass_controler
 def run(controler):
+    """General context provider. Is triggered on all command calls."""
     __setup_logging(controler.logger)
 
 @run.command()
@@ -62,7 +65,9 @@ def list(controler):
     Note:
         Old syntax: ``list [start-time] [end-time]``
     """
-    click.echo(controler.facts.get_all())
+    result = controler.facts.get_all()
+    click.echo(result)
+    return result
 
 
 @run.command()
@@ -123,7 +128,26 @@ def export(controler):
         end_time (str): End time of timeframe.
         format (str): Output format [html|tsv|ical|xml]
 """
-    raise NotImplemented
+    raise NotImplementedError
+
+
+
+@run.command()
+@pass_controler
+def list-categories(controler):
+    """"
+    List all existing categories.
+
+    Propabbly better as a sub command to list?
+    """
+    result = controler.categories.get_all()
+    click.echo(result)
+    return result
+
+
+def current():
+    """Display current tmp fact."""
+    raise NotImplementedError
 
 
 @run.command()
@@ -144,29 +168,12 @@ def search(controler):
         list: List of Fact instance matching parameters.
     """
 
-    raise NotImplemented
+    raise NotImplementedError
 
 
 @run.command()
 @pass_controler
-def activities(controler):
-    raise NotImplemented
-
-
-@run.command()
-@pass_controler
-def categories(controler):
-    """"
-    List all existing categories.
-
-    Propabbly better as a sub command to list?
-    """
-    click.echo(controler.categories.get_all())
-
-
-
-# Not unreasonable convinience methods
-def activities():
+def list-activities():
     """
     List all activity names.
 
@@ -174,38 +181,25 @@ def activities():
         One per line.
         It is unclear if the original talks about facts or activities here.
     """
-    pass
-
-def categories():
-    """
-    List all categories.
-
-    Note:
-        One per line.
-    """
+    raise NotImplementedError
 
 def overview():
     """Show overview window."""
-    pass
+    result = _launch_window('overvivew')
 
 
 def statistics():
     """Show statistics window."""
-    pass
+    result = _launch_window('statistics')
 
 
 def about():
     """Show about window."""
-    pass
+    result = _launch_window('about')
 
-# Dubious commands
-def current():
-    """Display current tmp fact."""
 
-# toggle()
-# track()
-
-def __setup_logging(logger):
+# Helper functions
+def _setup_logging(logger):
     formatter = logging.Formatter(
         '%(asctime)s [%(levelname)s] %(name)s:  %(message)s')
 
@@ -221,23 +215,25 @@ def __setup_logging(logger):
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
-def __create_tmp_fact(fact):
+def _create_tmp_fact(fact):
     """Create a temporary Fact."""
     filepath = os.path.join(client_config['tmp_dir'], client_config['tmp_filename'])
     with open(filepath, 'wb') as fobj:
         pickle.dump(fact, fobj)
     return fact
 
-
-def __load_tmp_fact():
+def _load_tmp_fact():
     filepath = os.path.join(client_config['tmp_dir'], client_config['tmp_filename'])
     with open(filepath, 'rb') as fobj:
-        return pickle.load(fobj)
+        fact = pickle.load(fobj)
+    if isinstance(fact, hamsterlib.Fact):
+        return fact
+    else:
+        raise TypeError(_(
+            "Something went wrong. It seems our pickled file does not contain"
+            " valid Fact instancce."
+        ))
 
 
-
-
-
-
-
-
+def _launch_window(window_type):
+    raise NotImplementedError
