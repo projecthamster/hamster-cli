@@ -56,6 +56,12 @@ def run(controler):
 @run.command()
 @pass_controler
 def list(controler):
+    """
+    List facts within a date range.
+
+    Note:
+        Old syntax: ``list [start-time] [end-time]``
+    """
     click.echo(controler.facts.get_all())
 
 
@@ -109,12 +115,35 @@ def stop(controler):
 @run.command()
 @pass_controler
 def export(controler):
+    """
+    Export facts within the given timeframe to specified format.
+
+    Args:
+        start_time (str): Start time of timeframe.
+        end_time (str): End time of timeframe.
+        format (str): Output format [html|tsv|ical|xml]
+"""
     raise NotImplemented
 
 
 @run.command()
 @pass_controler
 def search(controler):
+    """
+    List facts matching parameters.
+
+    Note:
+        Old syntax: ``search [terms] [start-time] [end-time]``
+
+    Args:
+        term (str): Search term to match.
+        start_time (str): Start time for timeframe(see time formats).
+        end_time (str): End time for timeframe (see time formats).
+
+    Returns:
+        list: List of Fact instance matching parameters.
+    """
+
     raise NotImplemented
 
 
@@ -136,18 +165,43 @@ def categories(controler):
 
 
 
-
-
 # Not unreasonable convinience methods
-# * get all categories
-# * get all activities (by category?)
+def activities():
+    """
+    List all activity names.
+
+    Note:
+        One per line.
+        It is unclear if the original talks about facts or activities here.
+    """
+    pass
+
+def categories():
+    """
+    List all categories.
+
+    Note:
+        One per line.
+    """
+
+def overview():
+    """Show overview window."""
+    pass
 
 
+def statistics():
+    """Show statistics window."""
+    pass
 
 
+def about():
+    """Show about window."""
+    pass
 
 # Dubious commands
-# current()
+def current():
+    """Display current tmp fact."""
+
 # toggle()
 # track()
 
