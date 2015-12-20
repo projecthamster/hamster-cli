@@ -54,7 +54,7 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context provider. Is triggered on all command calls."""
-    __setup_logging(controler.logger)
+    _setup_logging(controler.logger)
 
 @run.command()
 @pass_controler
@@ -134,7 +134,7 @@ def export(controler):
 
 @run.command()
 @pass_controler
-def list-categories(controler):
+def list_categories(controler):
     """"
     List all existing categories.
 
@@ -173,7 +173,7 @@ def search(controler):
 
 @run.command()
 @pass_controler
-def list-activities():
+def list_activities(controler):
     """
     List all activity names.
 
