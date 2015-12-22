@@ -87,7 +87,7 @@ def start(controler, raw_fact):
     fact = controler.parse_raw_fact(raw_fact)
     if not fact.end:
         # We seem to want to start a new tmp fact
-        tmp_fact = __load_tmp_fact()
+        tmp_fact = _load_tmp_fact()
         if tmp_fact:
             click.echo(_(
                 "There already seems to be an ongoing Fact present. As there"
@@ -97,7 +97,7 @@ def start(controler, raw_fact):
             controler.logger.debug(_("Trying to start with tmp_fact already present."))
         else:
             fact.start = datetime.datetime.now()
-            result = __create_tmp_fact(raw_fact)
+            result = _create_tmp_fact(fact)
             controler.logger.debug(_("New temporary fact started."))
     else:
         # We seem to add a complete fact
@@ -111,11 +111,24 @@ def stop(controler):
     """
     Stop tracking current activity
     """
-    fact = __load_tmp_fact()
-    fact.end = datetime.datetime.now()
-    result = controler.facts.save(fact)
-    logg
+    fact = _load_tmp_fact()
+    if fact:
+        fact.end = datetime.datetime.now()
+        fact = controler.facts.save(fact)
+        result = _remove_tmp_fact()
+        controler.logger.info(_("Temporary fact stoped."))
+    else:
+        click.echo(_("Unable to continue temporary fact. Are you sure there"
+                     " is one? Try running *current*."))
+        result = False
+    return result
 
+
+@run.command()
+@pass_controler
+def cancel(controler):
+    """Cancel tracking current temporary fact."""
+    raise NotImplementedError
 
 @run.command()
 @pass_controler
@@ -145,9 +158,18 @@ def list_categories(controler):
     return result
 
 
-def current():
+@run.command()
+@pass_controler
+def current(controler):
     """Display current tmp fact."""
-    raise NotImplementedError
+    tmp_fact = _load_tmp_fact()
+    if tmp_fact:
+        click.echo(tmp_fact)
+    else:
+        click.echo(_("There seems no be no activity beeing traccked right now."
+                     " maybe you want to *start* tracking one right now?"
+                     ))
+    return tmp_fact
 
 
 @run.command()
@@ -224,15 +246,24 @@ def _create_tmp_fact(fact):
 
 def _load_tmp_fact():
     filepath = os.path.join(client_config['tmp_dir'], client_config['tmp_filename'])
-    with open(filepath, 'rb') as fobj:
-        fact = pickle.load(fobj)
-    if isinstance(fact, hamsterlib.Fact):
-        return fact
+    try:
+        with open(filepath, 'rb') as fobj:
+            fact = pickle.load(fobj)
+    except IOError:
+        fact = False
     else:
-        raise TypeError(_(
-            "Something went wrong. It seems our pickled file does not contain"
-            " valid Fact instancce."
-        ))
+        if not isinstance(fact, Fact):
+            raise TypeError(_(
+                "Something went wrong. It seems our pickled file does not contain"
+                " valid Fact instance. [Content: '{content}'; Type: {type}".format(
+                    content=fact, type=type(fact))
+            ))
+    return fact
+
+def _remove_tmp_fact():
+    filepath = os.path.join(client_config['tmp_dir'], client_config['tmp_filename'])
+    return os.remove(filepath)
+
 
 
 def _launch_window(window_type):
