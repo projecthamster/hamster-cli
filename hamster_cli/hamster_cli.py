@@ -29,6 +29,7 @@ store_config = {
     'store': 'sqlalchemy',
     'daystart': datetime.time(hour=0, minute=0, second=0),
     'dayend': datetime.time(hour=23, minute=59, second=59),
+    'db-path': 'postgres://hamsterlib:foobar@localhost/hamsterlib',
 }
 
 client_config = {
@@ -85,6 +86,10 @@ def start(controler, raw_fact):
     # This should be two different commands!
 
     fact = controler.parse_raw_fact(raw_fact)
+    fact.start = datetime.datetime.now()
+    controler.logger.debug(_(
+        "New fact instance created: {fact}".format(fact=fact)
+    ))
     if not fact.end:
         # We seem to want to start a new tmp fact
         tmp_fact = _load_tmp_fact()
@@ -96,11 +101,13 @@ def start(controler, raw_fact):
             ))
             controler.logger.debug(_("Trying to start with tmp_fact already present."))
         else:
-            fact.start = datetime.datetime.now()
             result = _create_tmp_fact(fact)
             controler.logger.debug(_("New temporary fact started."))
     else:
         # We seem to add a complete fact
+        controler.logger.debug(_(
+            "Adding a new fact: {fact}".format(fact=fact)
+        ))
         controler.facts.save(fac)
         controler.logger.info(_("Fact saved to db."))
 
@@ -223,11 +230,12 @@ def about():
 # Helper functions
 def _setup_logging(logger):
     formatter = logging.Formatter(
-        '%(asctime)s [%(levelname)s] %(name)s:  %(message)s')
+        '[%(levelname)s] %(asctime)s %(name)s %(funcName)s:  %(message)s')
 
     if client_config['log_console']:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(client_config['log_console_level'])
+        console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
 
     if client_config['log_file']:
