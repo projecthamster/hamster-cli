@@ -76,15 +76,7 @@ def list(controler):
 @click.argument('raw_fact')
 @pass_controler
 def start(controler, raw_fact):
-    """
-    Actually serves two purposes.
-    (1) Add a complete Fact to the db.
-    (2) Start an 'ongoing fact' (possibly backdating start tme.
-
-    Should take the raw_fact exluding time info as a parameter.
-    """
-    # [FIXME]
-    # This should be two different commands!
+    """Start or add a fact."""
 
     # Handle empty strings.
     if not raw_fact:
@@ -104,7 +96,9 @@ def start(controler, raw_fact):
                 " can be only one at a time, please use 'stop' or 'camcel' to"
                 " close this existing one before starting a new one."
             ))
-            controler.client_logger.debug(_("Trying to start with tmp_fact already present."))
+            controler.client_logger.info(_(
+                "Trying to start with ongoing fact already present."
+            ))
         else:
             result = _create_tmp_fact(fact)
             controler.client_logger.debug(_("New temporary fact started."))
@@ -120,16 +114,17 @@ def start(controler, raw_fact):
 @run.command()
 @pass_controler
 def stop(controler):
-    """
-    Stop tracking current activity
-    """
+    """Stop tracking current activity."""
     fact = _load_tmp_fact()
     if fact:
         fact.end = datetime.datetime.now()
         fact = controler.facts.save(fact)
         result = _remove_tmp_fact()
-        controler.client_logger.info(_("Temporary fact stoped."))
+        controler.client_logger.debug(_("Temporary fact stoped."))
     else:
+        controler.client_logger.info(_(
+            "Trying to stop a non existing ongoing fact."
+        ))
         click.echo(_("Unable to continue temporary fact. Are you sure there"
                      " is one? Try running *current*."))
         result = False
@@ -140,7 +135,18 @@ def stop(controler):
 @pass_controler
 def cancel(controler):
     """Cancel tracking current temporary fact."""
-    raise NotImplementedError
+    tmp_fact = _load_tmp_fact()
+    if tmp_fact:
+        result = _remove_tmp_fact()
+        message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
+        click.echo(message)
+        controler.client_logger.debug(message)
+    else:
+        message = _("Nothing tracked right now. Not doing anything.")
+        click.echo(message)
+        controler.client_logger.info(message)
+
+
 
 @run.command()
 @pass_controler
@@ -261,15 +267,13 @@ def _setup_logging(controler):
 
 def _create_tmp_fact(fact):
     """Create a temporary Fact."""
-    filepath = os.path.join(client_config['tmp_dir'], client_config['tmp_filename'])
-    with open(filepath, 'wb') as fobj:
+    with open(_get_tmp_fact_path(), 'wb') as fobj:
         pickle.dump(fact, fobj)
     return fact
 
 def _load_tmp_fact():
-    filepath = os.path.join(client_config['tmp_dir'], client_config['tmp_filename'])
     try:
-        with open(filepath, 'rb') as fobj:
+        with open(_get_tmp_fact_path(), 'rb') as fobj:
             fact = pickle.load(fobj)
     except IOError:
         fact = False
@@ -283,8 +287,13 @@ def _load_tmp_fact():
     return fact
 
 def _remove_tmp_fact():
-    filepath = os.path.join(client_config['tmp_dir'], client_config['tmp_filename'])
-    return os.remove(filepath)
+    return os.remove(_get_tmp_fact_path)
+
+
+def _get_tmp_fact_path():
+    return os.path.join(
+        client_config['tmp_dir'], client_config['tmp_filename']
+    )
 
 
 
