@@ -6,8 +6,11 @@ import os
 import logging
 from gettext import gettext as _
 import warnings
+from tabulate import tabulate
+from collections import namedtuple
 
 from hamsterlib import HamsterControl, Category, Activity, Fact
+from hamsterlib import helpers
 
 
 """
@@ -59,17 +62,58 @@ def run(controler):
 
 
 @run.command()
+@click.argument('time_info', default='')
 @pass_controler
-def list(controler):
-    """
-    List facts within a date range.
+def list(controler, time_info):
+    """List facts within a date range."""
 
-    Note:
-        Old syntax: ``list [start-time] [end-time]``
-    """
-    result = controler.facts.get_all()
-    click.echo(result)
-    return result
+    def generate_table(facts):
+        # If you want to change the order just adjust the dict.
+        headers = {
+            'start': _("Start"),
+            'end': _("End"),
+            'activity': _("Activity"),
+            'category': _("Category"),
+            'description': _("Description"),
+            'delta': _("Duration")
+        }
+
+        columns = ('start', 'end', 'activity', 'category', 'description',
+            'delta')
+
+        header = [headers[column] for column in columns]
+
+        TableRow = namedtuple('TableRow', columns)
+
+        table = []
+        for fact in facts:
+            if fact.category:
+                category = fact.category.name
+            else:
+                category = ''
+
+            table.append(TableRow(
+                activity=fact.activity.name,
+                category=category,
+                description=fact.description,
+                start=fact.start.strftime('%Y-%m-%d %H:%M'),
+                end=fact.end.strftime('%Y-%m-%d %H:%M'),
+                delta='{minutes} min.'.format(minutes=(int(fact.delta.total_seconds()/60))),
+            ))
+
+        return (table, header)
+
+    if not time_info:
+        start, end = (None, None)
+    else:
+        start, end = helpers.complete_timeframe(
+            helpers.parse_time_info(time_info))
+
+
+    results = controler.facts.get_all(start=start, end=end)
+    table, headers = generate_table(results)
+    click.echo(tabulate(table, headers=headers))
+    return results
 
 
 @run.command()
