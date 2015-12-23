@@ -1,4 +1,5 @@
 import click
+import sys
 import pickle as pickle
 import datetime
 import os
@@ -72,7 +73,7 @@ def list(controler):
 
 
 @run.command()
-@click.argument('raw_fact', default='')
+@click.argument('raw_fact')
 @pass_controler
 def start(controler, raw_fact):
     """
@@ -84,6 +85,10 @@ def start(controler, raw_fact):
     """
     # [FIXME]
     # This should be two different commands!
+
+    # Handle empty strings.
+    if not raw_fact:
+        sys.exit(_("Please provide a non-empty activity name."))
 
     fact = controler.parse_raw_fact(raw_fact)
     fact.start = datetime.datetime.now()
