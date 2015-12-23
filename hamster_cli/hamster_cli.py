@@ -38,8 +38,7 @@ client_config = {
     'log_console': True,
     'log_file': True,
     'log_filename': 'hamster_cli.log',
-    'log_console_level': logging.DEBUG,
-    'log_file_level': logging.DEBUG,
+    'log_level': logging.DEBUG,
 }
 
 class Controler(HamsterControl):
@@ -55,7 +54,8 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context provider. Is triggered on all command calls."""
-    _setup_logging(controler.logger)
+    _setup_logging(controler)
+
 
 @run.command()
 @pass_controler
@@ -87,7 +87,7 @@ def start(controler, raw_fact):
 
     fact = controler.parse_raw_fact(raw_fact)
     fact.start = datetime.datetime.now()
-    controler.logger.debug(_(
+    controler.client_logger.debug(_(
         "New fact instance created: {fact}".format(fact=fact)
     ))
     if not fact.end:
@@ -99,17 +99,17 @@ def start(controler, raw_fact):
                 " can be only one at a time, please use 'stop' or 'camcel' to"
                 " close this existing one before starting a new one."
             ))
-            controler.logger.debug(_("Trying to start with tmp_fact already present."))
+            controler.client_logger.debug(_("Trying to start with tmp_fact already present."))
         else:
             result = _create_tmp_fact(fact)
-            controler.logger.debug(_("New temporary fact started."))
+            controler.client_logger.debug(_("New temporary fact started."))
     else:
         # We seem to add a complete fact
-        controler.logger.debug(_(
+        controler.client_logger.debug(_(
             "Adding a new fact: {fact}".format(fact=fact)
         ))
         controler.facts.save(fac)
-        controler.logger.info(_("Fact saved to db."))
+        controler.client_logger.info(_("Fact saved to db."))
 
 
 @run.command()
@@ -123,7 +123,7 @@ def stop(controler):
         fact.end = datetime.datetime.now()
         fact = controler.facts.save(fact)
         result = _remove_tmp_fact()
-        controler.logger.info(_("Temporary fact stoped."))
+        controler.client_logger.info(_("Temporary fact stoped."))
     else:
         click.echo(_("Unable to continue temporary fact. Are you sure there"
                      " is one? Try running *current*."))
@@ -228,22 +228,31 @@ def about():
 
 
 # Helper functions
-def _setup_logging(logger):
+def _setup_logging(controler):
     formatter = logging.Formatter(
         '[%(levelname)s] %(asctime)s %(name)s %(funcName)s:  %(message)s')
+    formatter2 = logging.Formatter(
+        '[%(levelname)s] %(asctime)s %(name)s %(funcName)s:  %(message)s')
+
+    lib_logger = controler.lib_logger
+    client_logger = logging.getLogger(__name__)
+    client_logger.setLevel(client_config['log_level'])
+    lib_logger.setLevel(client_config['log_level'])
+    controler.client_logger = client_logger
+
 
     if client_config['log_console']:
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(client_config['log_console_level'])
         console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
+        lib_logger.addHandler(console_handler)
+        client_logger.addHandler(console_handler)
 
     if client_config['log_file']:
         filename = client_config['log_filename']
         file_handler = logging.FileHandler(filename, encoding='utf-8')
-        file_handler.setLevel(client_config['log_file_level'])
         file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        lib_logger.addHandler(file_handler)
+        client_logger.addHandler(file_handler)
 
 def _create_tmp_fact(fact):
     """Create a temporary Fact."""
