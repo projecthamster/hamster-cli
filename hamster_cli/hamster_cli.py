@@ -257,16 +257,22 @@ def search(controler):
 
 
 @run.command()
+@click.argument('search_term', default='')
 @pass_controler
-def list_activities(controler):
-    """
-    List all activity names.
+def activities(controler, search_term):
+    """List all activity names."""
+    result = controler.activities.get_all(search_term=search_term)
+    table = []
+    headers = (_("Activity"), _("Category"))
+    for activity in result:
+        if activity.category:
+            category = activity.category.name
+        else:
+            category = None
+        table.append((activity.name, category))
 
-    Note:
-        One per line.
-        It is unclear if the original talks about facts or activities here.
-    """
-    raise NotImplementedError
+    click.echo(tabulate(table, headers=headers))
+    return result
 
 def overview():
     """Show overview window."""
