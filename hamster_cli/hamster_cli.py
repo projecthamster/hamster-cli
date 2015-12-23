@@ -209,14 +209,15 @@ def export(controler):
 
 @run.command()
 @pass_controler
-def list_categories(controler):
+def categories(controler):
     """"
     List all existing categories.
 
     Propabbly better as a sub command to list?
     """
     result = controler.categories.get_all()
-    click.echo(result)
+    for category in result:
+        click.echo(category.name)
     return result
 
 
