@@ -287,7 +287,7 @@ def _load_tmp_fact():
     return fact
 
 def _remove_tmp_fact():
-    return os.remove(_get_tmp_fact_path)
+    return os.remove(_get_tmp_fact_path())
 
 
 def _get_tmp_fact_path():
