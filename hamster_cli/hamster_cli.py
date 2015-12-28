@@ -14,7 +14,7 @@ except:
     from ConfigParser import SafeConfigParser
 
 from hamsterlib import HamsterControl, Category, Activity, Fact
-from hamsterlib import helpers
+from hamsterlib import helpers, reports
 
 
 """
@@ -183,17 +183,19 @@ def cancel(controler):
 
 
 @run.command()
+@click.argument('format', nargs=1, default='csv')
+@click.argument('start', nargs=1, default='')
+@click.argument('end', nargs=1, default='')
 @pass_controler
-def export(controler):
-    """
-    Export facts within the given timeframe to specified format.
-
-    Args:
-        start_time (str): Start time of timeframe.
-        end_time (str): End time of timeframe.
-        format (str): Output format [html|tsv|ical|xml]
-"""
-    raise NotImplementedError
+def export(controler, format, start, end):
+    filename = 'report.csv'
+    facts = controler.facts.get_all(start=start, end=end)
+    filepath = os.path.join(controler.client_config['cwd'], filename)
+    if format == 'csv':
+        writer = reports.TSVWriter(filepath)
+    else:
+        raise ValueError(_("Unrecognized export format."))
+    writer.write_report(facts)
 
 
 
@@ -277,6 +279,10 @@ def statistics():
 def about():
     """Show about window."""
     result = _launch_window('about')
+
+
+
+
 
 
 # Helper functions
