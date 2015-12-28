@@ -8,6 +8,10 @@ from gettext import gettext as _
 import warnings
 from tabulate import tabulate
 from collections import namedtuple
+try:
+    from configparser import SafeConfigParser
+except:
+    from ConfigParser import SafeConfigParser
 
 from hamsterlib import HamsterControl, Category, Activity, Fact
 from hamsterlib import helpers, reports
@@ -28,28 +32,14 @@ Note:
     In case of this CLI we just use a pickled tmp-file and be done with it.
 """
 
-store_config = {
-    'unsorted_localized': "Unsorted",
-    'store': 'sqlalchemy',
-    'daystart': datetime.time(hour=0, minute=0, second=0),
-    'dayend': datetime.time(hour=23, minute=59, second=59),
-    'db-path': 'postgres://hamsterlib:foobar@localhost/hamsterlib',
-}
+CONFIGFILE_PATH = './config.ini'
 
-client_config = {
-    'tmp_dir': '.',
-    'tmp_filename': 'tmp_fact.pickle',
-    'log_console': True,
-    'log_file': True,
-    'log_filename': 'hamster_cli.log',
-    'log_level': logging.DEBUG,
-}
 
 class Controler(HamsterControl):
     def __init__(self):
-        super(Controler, self).__init__(store_config)
+        lib_config, client_config = _get_config(CONFIGFILE_PATH)
+        super(Controler, self).__init__(lib_config)
         self.client_config = client_config
-        self.dbus = False
 
 pass_controler = click.make_pass_decorator(Controler, ensure=True)
 
@@ -304,19 +294,19 @@ def _setup_logging(controler):
 
     lib_logger = controler.lib_logger
     client_logger = logging.getLogger(__name__)
-    client_logger.setLevel(client_config['log_level'])
-    lib_logger.setLevel(client_config['log_level'])
+    client_logger.setLevel(controler.client_config['log_level'])
+    lib_logger.setLevel(controler.client_config['log_level'])
     controler.client_logger = client_logger
 
 
-    if client_config['log_console']:
+    if controler.client_config['log_console']:
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         lib_logger.addHandler(console_handler)
         client_logger.addHandler(console_handler)
 
-    if client_config['log_file']:
-        filename = client_config['log_filename']
+    if controler.client_config['log_file']:
+        filename = controler.client_config['log_filename']
         file_handler = logging.FileHandler(filename, encoding='utf-8')
         file_handler.setFormatter(formatter)
         lib_logger.addHandler(file_handler)
@@ -356,3 +346,86 @@ def _get_tmp_fact_path():
 
 def _launch_window(window_type):
     raise NotImplementedError
+
+def _get_config(file_path):
+    # [TODO]
+    # We propably can make better use of configparsers default config optionn,
+    # but for now this will do.
+
+    def get_client_config(config):
+        """
+        Make sure config values are of proper type and provide basic
+        sanity checks (e.g. make sure we got a filename if we want to log to
+        file and such..).
+        """
+        log_file = config.get('Client', 'log_filename'),
+        if log_file:
+            try:
+                log_filename = config.get('Client', 'log_filename')
+            except config.NoOptionException:
+                sys.exit(_(
+                    "You specified logging to a file, but there seems to"
+                    " be no actial filename provided!"
+                ))
+
+        LOG_LEVELS = {
+            'info': logging.INFO,
+            'debug': logging.DEBUG,
+            'warning': logging.WARNING,
+            'error': logging.ERROR,
+        }
+        log_level = LOG_LEVELS.get(config.get('Client', 'log_level').lower())
+        if not log_level:
+            sys.exit(_("Unrecognized log level value in config"))
+
+
+        return {
+            'cwd': config.get('Client', 'cwd'),
+            'tmp_filename': config.get('Client', 'tmp_filename'),
+            'log_console': config.getboolean('Client', 'log_console'),
+            'log_file': log_file,
+            'log_filename': log_filename,
+            'log_level': log_level,
+            'dbus': config.getboolean('Client', 'dbus'),
+        }
+
+    def get_backend_config(config):
+        """
+        [TODO]
+        Re-evaluate
+
+        At least the validation code/sanity checks may be relevant to other
+        clients as well. So mabe this qualifies for inclusion into
+        hammsterlib?
+        """
+        day_start = datetime.datetime.strptime(config.get( 'Backend',
+            'daystart'), '%H:%M:%S').time()
+        day_end = datetime.datetime.strptime(config.get('Backend', 'dayend'),
+            '%H:%M:%S').time()
+        if day_end < day_start:
+            sys-exit(_(
+                "Your 'day_end' time seems to be before 'day_start', please"
+                " please correct this."
+            ))
+
+        # [FIXME]
+        # Thhis should live with hamsterlib instead!
+        STORE_OPTIONS = ('sqlalchemy',)
+
+        store = config.get('Backend', 'store')
+        if store not in STORE_OPTIONS:
+            sys.exit(_("Unrecognized store option."))
+
+        return {
+            'day_start': day_start,
+            'day_end': day_end,
+            'unsorted_localized': config.get('Backend', 'unsorted_localized'),
+            'store': store,
+            'db-path': config.get('Backend', 'db_path')
+        }
+
+    config = SafeConfigParser()
+    if not config.read(file_path):
+        raise IOError(_("Failed to process config file!"))
+
+    return get_backend_config(config), get_client_config(config)
