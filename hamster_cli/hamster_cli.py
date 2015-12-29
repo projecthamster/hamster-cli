@@ -92,8 +92,10 @@ def list(controler, time_range):
 
 @run.command()
 @click.argument('raw_fact')
+@click.argument ('start', default='')
+@click.argument('end', default='')
 @pass_controler
-def start(controler, raw_fact):
+def start(controler, raw_fact, start, end):
     """Start or add a fact."""
 
     # Handle empty strings.
@@ -101,7 +103,11 @@ def start(controler, raw_fact):
         sys.exit(_("Please provide a non-empty activity name."))
 
     fact = controler.parse_raw_fact(raw_fact)
-    fact.start = datetime.datetime.now()
+    if not fact.start:
+        fact.start = start or datetime.datetime.now()
+    if not fact.end and end:
+        fact.end = end
+
     controler.client_logger.debug(_(
         "New fact instance created: {fact}".format(fact=fact)
     ))
@@ -111,7 +117,7 @@ def start(controler, raw_fact):
         if tmp_fact:
             click.echo(_(
                 "There already seems to be an ongoing Fact present. As there"
-                " can be only one at a time, please use 'stop' or 'camcel' to"
+                " can be only one at a time, please use 'stop' or 'cancel' to"
                 " close this existing one before starting a new one."
             ))
             controler.client_logger.info(_(
@@ -134,7 +140,7 @@ def start(controler, raw_fact):
 @pass_controler
 def stop(controler):
     """Stop tracking current activity."""
-    fact = _load_tmp_fact(_get_tmp_fact_path(config.client_config))
+    fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if fact:
         fact.end = datetime.datetime.now()
         fact = controler.facts.save(fact)
