@@ -52,58 +52,42 @@ def run(controler):
 
 
 @run.command()
-@click.argument('time_info', default='')
+@click.argument('search_term')
+@click.argument('time_range', default='')
 @pass_controler
-def list(controler, time_info):
-    """List facts within a date range."""
-
-    def generate_table(facts):
-        # If you want to change the order just adjust the dict.
-        headers = {
-            'start': _("Start"),
-            'end': _("End"),
-            'activity': _("Activity"),
-            'category': _("Category"),
-            'description': _("Description"),
-            'delta': _("Duration")
-        }
-
-        columns = ('start', 'end', 'activity', 'category', 'description',
-            'delta')
-
-        header = [headers[column] for column in columns]
-
-        TableRow = namedtuple('TableRow', columns)
-
-        table = []
-        for fact in facts:
-            if fact.category:
-                category = fact.category.name
-            else:
-                category = ''
-
-            table.append(TableRow(
-                activity=fact.activity.name,
-                category=category,
-                description=fact.description,
-                start=fact.start.strftime('%Y-%m-%d %H:%M'),
-                end=fact.end.strftime('%Y-%m-%d %H:%M'),
-                delta='{minutes} min.'.format(minutes=(int(fact.delta.total_seconds()/60))),
-            ))
-
-        return (table, header)
-
-    if not time_info:
+def search(controler, search_term, time_range):
+    if not time_range:
         start, end = (None, None)
     else:
         start, end = helpers.complete_timeframe(
-            helpers.parse_time_info(time_info))
+            helpers.parse_time_range(time_range))
 
 
-    results = controler.facts.get_all(start=start, end=end)
+    results = controler.facts.get_all(search_term=search_term, start=start,
+        end=end)
     table, headers = generate_table(results)
     click.echo(tabulate(table, headers=headers))
     return results
+
+@run.command()
+@click.argument('time_range', default='')
+@pass_controler
+def list(controler, time_range):
+    """List facts within a date range."""
+
+    if not time_range:
+        start, end = (None, None)
+    else:
+        start, end = helpers.complete_timeframe(
+            helpers.parse_time_range(time_range))
+
+
+    results = controler.facts.get_all(start=start, end=end)
+    table, headers = _generate_table(results)
+    click.echo(tabulate(table, headers=headers))
+    return results
+
+
 
 
 @run.command()
@@ -123,7 +107,7 @@ def start(controler, raw_fact):
     ))
     if not fact.end:
         # We seem to want to start a new tmp fact
-        tmp_fact = _load_tmp_fact()
+        tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
         if tmp_fact:
             click.echo(_(
                 "There already seems to be an ongoing Fact present. As there"
@@ -134,7 +118,8 @@ def start(controler, raw_fact):
                 "Trying to start with ongoing fact already present."
             ))
         else:
-            result = _create_tmp_fact(fact)
+            result = _create_tmp_fact(_get_tmp_fact_path(
+                controler.client_config),fact)
             controler.client_logger.debug(_("New temporary fact started."))
     else:
         # We seem to add a complete fact
@@ -149,11 +134,11 @@ def start(controler, raw_fact):
 @pass_controler
 def stop(controler):
     """Stop tracking current activity."""
-    fact = _load_tmp_fact()
+    fact = _load_tmp_fact(_get_tmp_fact_path(config.client_config))
     if fact:
         fact.end = datetime.datetime.now()
         fact = controler.facts.save(fact)
-        result = _remove_tmp_fact()
+        result = _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
         controler.client_logger.debug(_("Temporary fact stoped."))
     else:
         controler.client_logger.info(_(
@@ -169,9 +154,9 @@ def stop(controler):
 @pass_controler
 def cancel(controler):
     """Cancel tracking current temporary fact."""
-    tmp_fact = _load_tmp_fact()
+    tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if tmp_fact:
-        result = _remove_tmp_fact()
+        result = _remove_tmp_fact(_get_tmp_fact_path(config.client_config))
         message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
         click.echo(message)
         controler.client_logger.debug(message)
@@ -217,7 +202,7 @@ def categories(controler):
 @pass_controler
 def current(controler):
     """Display current tmp fact."""
-    tmp_fact = _load_tmp_fact()
+    tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if tmp_fact:
         click.echo(tmp_fact)
     else:
@@ -226,26 +211,6 @@ def current(controler):
                      ))
     return tmp_fact
 
-
-@run.command()
-@pass_controler
-def search(controler):
-    """
-    List facts matching parameters.
-
-    Note:
-        Old syntax: ``search [terms] [start-time] [end-time]``
-
-    Args:
-        term (str): Search term to match.
-        start_time (str): Start time for timeframe(see time formats).
-        end_time (str): End time for timeframe (see time formats).
-
-    Returns:
-        list: List of Fact instance matching parameters.
-    """
-
-    raise NotImplementedError
 
 
 @run.command()
@@ -283,8 +248,6 @@ def about():
 
 
 
-
-
 # Helper functions
 def _setup_logging(controler):
     formatter = logging.Formatter(
@@ -312,15 +275,15 @@ def _setup_logging(controler):
         lib_logger.addHandler(file_handler)
         client_logger.addHandler(file_handler)
 
-def _create_tmp_fact(fact):
+def _create_tmp_fact(filepath, fact):
     """Create a temporary Fact."""
-    with open(_get_tmp_fact_path(), 'wb') as fobj:
+    with open(filepath, 'wb') as fobj:
         pickle.dump(fact, fobj)
     return fact
 
-def _load_tmp_fact():
+def _load_tmp_fact(filepath):
     try:
-        with open(_get_tmp_fact_path(), 'rb') as fobj:
+        with open(filepath, 'rb') as fobj:
             fact = pickle.load(fobj)
     except IOError:
         fact = False
@@ -333,13 +296,13 @@ def _load_tmp_fact():
             ))
     return fact
 
-def _remove_tmp_fact():
-    return os.remove(_get_tmp_fact_path())
+def _remove_tmp_fact(filepath):
+    return os.remove(filepath)
 
 
-def _get_tmp_fact_path():
+def _get_tmp_fact_path(config):
     return os.path.join(
-        client_config['tmp_dir'], client_config['tmp_filename']
+        config['cwd'], config['tmp_filename']
     )
 
 
@@ -429,3 +392,40 @@ def _get_config(file_path):
         raise IOError(_("Failed to process config file!"))
 
     return get_backend_config(config), get_client_config(config)
+
+def _generate_table(facts):
+    """Create a nice looking table representing a set of fact instances."""
+    # If you want to change the order just adjust the dict.
+    headers = {
+        'start': _("Start"),
+        'end': _("End"),
+        'activity': _("Activity"),
+        'category': _("Category"),
+        'description': _("Description"),
+        'delta': _("Duration")
+    }
+
+    columns = ('start', 'end', 'activity', 'category', 'description',
+        'delta')
+
+    header = [headers[column] for column in columns]
+
+    TableRow = namedtuple('TableRow', columns)
+
+    table = []
+    for fact in facts:
+        if fact.category:
+            category = fact.category.name
+        else:
+            category = ''
+
+        table.append(TableRow(
+            activity=fact.activity.name,
+            category=category,
+            description=fact.description,
+            start=fact.start.strftime('%Y-%m-%d %H:%M'),
+            end=fact.end.strftime('%Y-%m-%d %H:%M'),
+            delta='{minutes} min.'.format(minutes=(int(fact.delta.total_seconds()/60))),
+        ))
+
+    return (table, header)
