@@ -30,6 +30,11 @@ Note:
     We stick with our doctrine of only storing complete Facts and deligating
     ongoing Facts to the client.
     In case of this CLI we just use a pickled tmp-file and be done with it.
+
+    To promote cleanness and seperation of concens we split the actual command
+    invocation and its click-integration from the logic ctriggered by that
+    that command. This has the added benefit of a clear seperation of unit and
+    integration tests.
 """
 
 CONFIGFILE_PATH = './config.ini'
@@ -48,6 +53,10 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context provider. Is triggered on all command calls."""
+    _run(*args)
+
+def _run(controler):
+    """See `run` for details."""
     _setup_logging(controler)
 
 
@@ -56,38 +65,34 @@ def run(controler):
 @click.argument('time_range', default='')
 @pass_controler
 def search(controler, search_term, time_range):
+    _search(*args)
+
+def _search(controler, search_term, time_range):
     if not time_range:
         start, end = (None, None)
     else:
         start, end = helpers.complete_timeframe(
-            helpers.parse_time_range(time_range))
+            helpers.parse_time_range(time_range),
+            controler.config['day_start'],
+            controler.config['day_end']
+        )
 
 
     results = controler.facts.get_all(search_term=search_term, start=start,
         end=end)
-    table, headers = generate_table(results)
+    table, headers = _generate_table(results)
     click.echo(tabulate(table, headers=headers))
-    return results
 
 @run.command()
 @click.argument('time_range', default='')
 @pass_controler
 def list(controler, time_range):
-    """List facts within a date range."""
+    """
+    List facts within a date range.
 
-    if not time_range:
-        start, end = (None, None)
-    else:
-        start, end = helpers.complete_timeframe(
-            helpers.parse_time_range(time_range))
-
-
-    results = controler.facts.get_all(start=start, end=end)
-    table, headers = _generate_table(results)
-    click.echo(tabulate(table, headers=headers))
-    return results
-
-
+    This is effectivly just a specical version of `search`
+    """
+    _search(time_range=time_range)
 
 
 @run.command()
@@ -97,12 +102,17 @@ def list(controler, time_range):
 @pass_controler
 def start(controler, raw_fact, start, end):
     """Start or add a fact."""
+    _start(*args)
 
-    # Handle empty strings.
-    if not raw_fact:
-        sys.exit(_("Please provide a non-empty activity name."))
+def _start(controler, raw_fact, start, end):
+    """See `start` for details."""
 
     fact = controler.parse_raw_fact(raw_fact)
+    # Explicit trumps implicit!
+    if start:
+        fact.start = helpers.parse_time(start)
+    if end:
+        fact.end = helpers.parse_time(end)
     if not fact.start:
         fact.start = start or datetime.datetime.now()
     if not fact.end and end:
@@ -113,27 +123,10 @@ def start(controler, raw_fact, start, end):
     ))
     if not fact.end:
         # We seem to want to start a new tmp fact
-        tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-        if tmp_fact:
-            click.echo(_(
-                "There already seems to be an ongoing Fact present. As there"
-                " can be only one at a time, please use 'stop' or 'cancel' to"
-                " close this existing one before starting a new one."
-            ))
-            controler.client_logger.info(_(
-                "Trying to start with ongoing fact already present."
-            ))
-        else:
-            result = _create_tmp_fact(_get_tmp_fact_path(
-                controler.client_config),fact)
-            controler.client_logger.debug(_("New temporary fact started."))
+        fact = _start_tmp_fact(controler, fact)
     else:
         # We seem to add a complete fact
-        controler.client_logger.debug(_(
-            "Adding a new fact: {fact}".format(fact=fact)
-        ))
-        controler.facts.save(fac)
-        controler.client_logger.info(_("Fact saved to db."))
+        fact = _add_fact(controler, fact)
 
 
 @run.command()
@@ -162,7 +155,7 @@ def cancel(controler):
     """Cancel tracking current temporary fact."""
     tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if tmp_fact:
-        result = _remove_tmp_fact(_get_tmp_fact_path(config.client_config))
+        result = _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
         message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
         click.echo(message)
         controler.client_logger.debug(message)
@@ -435,3 +428,28 @@ def _generate_table(facts):
         ))
 
     return (table, header)
+
+
+def _start_tmp_fact(controler, fact):
+    tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
+    if tmp_fact:
+        click.echo(_(
+            "There already seems to be an ongoing Fact present. As there"
+            " can be only one at a time, please use 'stop' or 'cancel' to"
+            " close this existing one before starting a new one."
+        ))
+        controler.client_logger.info(_(
+            "Trying to start with ongoing fact already present."
+        ))
+    else:
+        result = _create_tmp_fact(_get_tmp_fact_path(
+            controler.client_config),fact)
+        controler.client_logger.debug(_("New temporary fact started."))
+
+
+def _add_fact(controler, fact):
+    controler.client_logger.debug(_(
+        "Adding a new fact: {fact}".format(fact=fact)
+    ))
+    controler.facts.save(fact)
+    controler.client_logger.info(_("Fact saved to db."))
