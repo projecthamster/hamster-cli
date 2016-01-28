@@ -5,7 +5,6 @@ import datetime
 import os
 import logging
 from gettext import gettext as _
-import warnings
 from tabulate import tabulate
 from collections import namedtuple
 try:
@@ -132,7 +131,10 @@ def _start(controler, raw_fact, start, end):
 @run.command()
 @pass_controler
 def stop(controler):
-    """Stop tracking current activity."""
+    """Stop tracking current activity. Saving the result."""
+    _stop(controler)
+
+def _stop(controler):
     fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if fact:
         fact.end = datetime.datetime.now()
@@ -145,14 +147,16 @@ def stop(controler):
         ))
         click.echo(_("Unable to continue temporary fact. Are you sure there"
                      " is one? Try running *current*."))
-        result = False
-    return result
 
 
 @run.command()
 @pass_controler
 def cancel(controler):
-    """Cancel tracking current temporary fact."""
+    _cancel(controler)
+
+
+def _cancel(controler):
+    """Cancel tracking current temporary fact, discaring the result."""
     tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if tmp_fact:
         result = _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
@@ -172,6 +176,9 @@ def cancel(controler):
 @click.argument('end', nargs=1, default='')
 @pass_controler
 def export(controler, format, start, end):
+    _export(controler, format, start, end)
+
+def _export(controler, format, start, end):
     filename = 'report.csv'
     facts = controler.facts.get_all(start=start, end=end)
     filepath = os.path.join(controler.client_config['cwd'], filename)
@@ -191,24 +198,31 @@ def categories(controler):
 
     Propabbly better as a sub command to list?
     """
+    _categories(controler)
+
+
+def _categories(controler):
     result = controler.categories.get_all()
     for category in result:
         click.echo(category.name)
-    return result
 
 
 @run.command()
 @pass_controler
 def current(controler):
     """Display current tmp fact."""
+
+    _current(controler)
+
+
+def _current(controler):
     tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if tmp_fact:
         click.echo(tmp_fact)
     else:
-        click.echo(_("There seems no be no activity beeing traccked right now."
+        click.echo(_("There seems no be no activity beeing tracked right now."
                      " maybe you want to *start* tracking one right now?"
                      ))
-    return tmp_fact
 
 
 
@@ -217,6 +231,11 @@ def current(controler):
 @pass_controler
 def activities(controler, search_term):
     """List all activity names."""
+    _activities(controler, search_term)
+
+
+
+def _activities(controler, search_term):
     result = controler.activities.get_all(search_term=search_term)
     table = []
     headers = (_("Activity"), _("Category"))
@@ -228,7 +247,6 @@ def activities(controler, search_term):
         table.append((activity.name, category))
 
     click.echo(tabulate(table, headers=headers))
-    return result
 
 def overview():
     """Show overview window."""
