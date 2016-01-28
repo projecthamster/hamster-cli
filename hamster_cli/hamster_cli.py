@@ -269,15 +269,15 @@ def about():
 def _setup_logging(controler):
     formatter = logging.Formatter(
         '[%(levelname)s] %(asctime)s %(name)s %(funcName)s:  %(message)s')
-    formatter2 = logging.Formatter(
-        '[%(levelname)s] %(asctime)s %(name)s %(funcName)s:  %(message)s')
 
     lib_logger = controler.lib_logger
     client_logger = logging.getLogger(__name__)
+    # Clear any existing (null)Handlers
+    lib_logger.handlers = []
+    client_logger.handlers = []
     client_logger.setLevel(controler.client_config['log_level'])
     lib_logger.setLevel(controler.client_config['log_level'])
     controler.client_logger = client_logger
-
 
     if controler.client_config['log_console']:
         console_handler = logging.StreamHandler()
@@ -285,7 +285,7 @@ def _setup_logging(controler):
         lib_logger.addHandler(console_handler)
         client_logger.addHandler(console_handler)
 
-    if controler.client_config['log_file']:
+    if controler.client_config['log_filename']:
         filename = controler.client_config['log_filename']
         file_handler = logging.FileHandler(filename, encoding='utf-8')
         file_handler.setFormatter(formatter)
@@ -323,7 +323,6 @@ def _get_tmp_fact_path(config):
     )
 
 
-
 def _launch_window(window_type):
     raise NotImplementedError
 
@@ -338,15 +337,12 @@ def _get_config(file_path):
         sanity checks (e.g. make sure we got a filename if we want to log to
         file and such..).
         """
-        log_file = config.get('Client', 'log_filename'),
-        if log_file:
-            try:
-                log_filename = config.get('Client', 'log_filename')
-            except config.NoOptionException:
-                sys.exit(_(
-                    "You specified logging to a file, but there seems to"
-                    " be no actial filename provided!"
-                ))
+        log_filename = config.get('Client', 'log_filename')
+        if not log_filename:
+            raise ValueError(_(
+                "You specified logging to a file, but there seems to"
+                " be no actual filename provided!"
+            ))
 
         LOG_LEVELS = {
             'info': logging.INFO,
@@ -356,14 +352,12 @@ def _get_config(file_path):
         }
         log_level = LOG_LEVELS.get(config.get('Client', 'log_level').lower())
         if not log_level:
-            sys.exit(_("Unrecognized log level value in config"))
-
+            raise ValueError(_("Unrecognized log level value in config"))
 
         return {
             'cwd': config.get('Client', 'cwd'),
             'tmp_filename': config.get('Client', 'tmp_filename'),
             'log_console': config.getboolean('Client', 'log_console'),
-            'log_file': log_file,
             'log_filename': log_filename,
             'log_level': log_level,
             'dbus': config.getboolean('Client', 'dbus'),
@@ -371,6 +365,10 @@ def _get_config(file_path):
 
     def get_backend_config(config):
         """
+        Make sure config values are of proper type and provide basic
+        sanity checks (e.g. make sure we got a filename if we want to log to
+        file and such..).
+
         [TODO]
         Re-evaluate
 
@@ -378,8 +376,12 @@ def _get_config(file_path):
         clients as well. So mabe this qualifies for inclusion into
         hammsterlib?
         """
-        day_start = datetime.datetime.strptime(config.get( 'Backend',
-            'daystart'), '%H:%M:%S').time()
+        try:
+            day_start = datetime.datetime.strptime(config.get('Backend',
+                'daystart'), '%H:%M:%S').time()
+        except ValueError:
+            raise ValueError(_("We encountered an error when parsing configs"
+                        "'day_start' value! Aborting ..."))
         day_end = datetime.datetime.strptime(config.get('Backend', 'dayend'),
             '%H:%M:%S').time()
         if day_end < day_start:
@@ -408,7 +410,7 @@ def _get_config(file_path):
     if not config.read(file_path):
         raise IOError(_("Failed to process config file!"))
 
-    return get_backend_config(config), get_client_config(config)
+    return (get_backend_config(config), get_client_config(config))
 
 def _generate_table(facts):
     """Create a nice looking table representing a set of fact instances."""
