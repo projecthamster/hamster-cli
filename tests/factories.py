@@ -12,7 +12,6 @@ class CategoryFactory(factory.Factory):
     class Meta:
         model = hamsterlib.Category
 
-
 class ActivityFactory(factory.Factory):
     pk = None
     name = factory.Faker('word')

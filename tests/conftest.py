@@ -34,6 +34,12 @@ def lib_config():
 
 @pytest.fixture
 def client_config():
+    """
+    This is an actual config ficture, not config file.
+
+    That means this fixture represents the the result of all typechecks and
+    type conversions.
+    """
     return {
         'cwd': '.',
         'tmp_filename': 'test_tmp_fact.pickle',
