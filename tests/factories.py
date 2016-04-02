@@ -1,9 +1,10 @@
+import datetime
+
 import factory
 import faker
-import datetime
-import factory
 
 import hamsterlib
+
 
 class CategoryFactory(factory.Factory):
     pk = None
@@ -11,6 +12,7 @@ class CategoryFactory(factory.Factory):
 
     class Meta:
         model = hamsterlib.Category
+
 
 class ActivityFactory(factory.Factory):
     pk = None
@@ -20,6 +22,7 @@ class ActivityFactory(factory.Factory):
 
     class Meta:
         model = hamsterlib.Activity
+
 
 class FactFactory(factory.Factory):
     pk = None

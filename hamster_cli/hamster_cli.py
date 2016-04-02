@@ -1,19 +1,21 @@
-import click
-import sys
-import pickle as pickle
 import datetime
-import os
 import logging
-from gettext import gettext as _
-from tabulate import tabulate
+import os
+import pickle as pickle
+import sys
 from collections import namedtuple
+from gettext import gettext as _
+
+import click
+from tabulate import tabulate
+
+from hamsterlib import Fact, HamsterControl, helpers, reports
+
 try:
     from configparser import SafeConfigParser
 except:
     from ConfigParser import SafeConfigParser
 
-from hamsterlib import HamsterControl, Category, Activity, Fact
-from hamsterlib import helpers, reports
 
 
 """
@@ -52,7 +54,8 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context provider. Is triggered on all command calls."""
-    _run(*args)
+    _run()
+
 
 def _run(controler):
     """See `run` for details."""
@@ -64,7 +67,8 @@ def _run(controler):
 @click.argument('time_range', default='')
 @pass_controler
 def search(controler, search_term, time_range):
-    _search(*args)
+    _search(search_term, time_range)
+
 
 def _search(controler, search_term, time_range):
     if not time_range:
@@ -76,11 +80,11 @@ def _search(controler, search_term, time_range):
             controler.config['day_end']
         )
 
-
     results = controler.facts.get_all(search_term=search_term, start=start,
         end=end)
     table, headers = _generate_table(results)
     click.echo(tabulate(table, headers=headers))
+
 
 @run.command()
 @click.argument('time_range', default='')
@@ -96,12 +100,13 @@ def list(controler, time_range):
 
 @run.command()
 @click.argument('raw_fact')
-@click.argument ('start', default='')
+@click.argument('start', default='')
 @click.argument('end', default='')
 @pass_controler
 def start(controler, raw_fact, start, end):
     """Start or add a fact."""
-    _start(*args)
+    _start(controler, raw_fact, start, end)
+
 
 def _start(controler, raw_fact, start, end):
     """See `start` for details."""
@@ -134,13 +139,15 @@ def stop(controler):
     """Stop tracking current activity. Saving the result."""
     _stop(controler)
 
+
 def _stop(controler):
     fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if fact:
         fact.end = datetime.datetime.now()
         fact = controler.facts.save(fact)
-        result = _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
+        _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
         controler.client_logger.debug(_("Temporary fact stoped."))
+        click.echo(_("Temporary fact stoped!"))
     else:
         controler.client_logger.info(_(
             "Trying to stop a non existing ongoing fact."
@@ -159,7 +166,7 @@ def _cancel(controler):
     """Cancel tracking current temporary fact, discaring the result."""
     tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
     if tmp_fact:
-        result = _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
+        _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
         message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
         click.echo(message)
         controler.client_logger.debug(message)
@@ -167,7 +174,6 @@ def _cancel(controler):
         message = _("Nothing tracked right now. Not doing anything.")
         click.echo(message)
         controler.client_logger.info(message)
-
 
 
 @run.command()
@@ -178,6 +184,7 @@ def _cancel(controler):
 def export(controler, format, start, end):
     _export(controler, format, start, end)
 
+
 def _export(controler, format, start, end):
     filename = 'report.csv'
     facts = controler.facts.get_all(start=start, end=end)
@@ -187,7 +194,6 @@ def _export(controler, format, start, end):
     else:
         raise ValueError(_("Unrecognized export format."))
     writer.write_report(facts)
-
 
 
 @run.command()
@@ -225,14 +231,12 @@ def _current(controler):
                      ))
 
 
-
 @run.command()
 @click.argument('search_term', default='')
 @pass_controler
 def activities(controler, search_term):
     """List all activity names."""
     _activities(controler, search_term)
-
 
 
 def _activities(controler, search_term):
@@ -248,21 +252,23 @@ def _activities(controler, search_term):
 
     click.echo(tabulate(table, headers=headers))
 
+
+@run.command()
 def overview():
     """Show overview window."""
-    result = _launch_window('overvivew')
+    _launch_window('overview')
 
 
+@run.command()
 def statistics():
     """Show statistics window."""
-    result = _launch_window('statistics')
+    _launch_window('statistics')
 
 
+@run.command()
 def about():
     """Show about window."""
-    result = _launch_window('about')
-
-
+    _launch_window('about')
 
 
 # Helper functions
@@ -385,7 +391,7 @@ def _get_config(file_path):
         day_end = datetime.datetime.strptime(config.get('Backend', 'dayend'),
             '%H:%M:%S').time()
         if day_end < day_start:
-            sys-exit(_(
+            sys.exit(_(
                 "Your 'day_end' time seems to be before 'day_start', please"
                 " please correct this."
             ))
@@ -412,8 +418,14 @@ def _get_config(file_path):
 
     return (get_backend_config(config), get_client_config(config))
 
+
 def _generate_table(facts):
-    """Create a nice looking table representing a set of fact instances."""
+    """
+    Create a nice looking table representing a set of fact instances.
+
+    Returns a (table, header) tuple. 'table' is a list of ``TableRow``
+    instances representing a single fact.
+    """
     # If you want to change the order just adjust the dict.
     headers = {
         'start': _("Start"),
@@ -473,3 +485,4 @@ def _add_fact(controler, fact):
     ))
     controler.facts.save(fact)
     controler.client_logger.info(_("Fact saved to db."))
+    return True

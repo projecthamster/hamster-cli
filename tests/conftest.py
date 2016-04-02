@@ -1,11 +1,16 @@
 import datetime
+import os
+import pickle as pickle
+
 import pytest
+from click.testing import CliRunner
+from pytest_factoryboy import register
+
 import hamster_cli.hamster_cli as hamster_cli
 import hamsterlib
-from pytest_factoryboy import register
-import factories
-import pickle as pickle
-import os
+
+from . import factories
+
 try:
     from configparser import SafeConfigParser
 except:
@@ -20,12 +25,15 @@ register(factories.FactFactory)
 def runner():
     """Used for integrations tests."""
     def runner(args=[]):
-        return testing.CliRunner().invoke(hamster_cli.run, args)
+        return CliRunner().invoke(hamster_cli.run, args)
     return runner
+
+
 @pytest.fixture
 def base_config():
     return lib_config, client_config
-    """Privide a generic baseline configuration."""
+    """Provide a generic baseline configuration."""
+
 
 @pytest.fixture
 def lib_config():
@@ -36,6 +44,7 @@ def lib_config():
         'day_end': datetime.time(hour=23, minute=59, second=59),
         'db-path': 'sqlite:///:memory:',
     }
+
 
 @pytest.fixture
 def client_config():
@@ -55,6 +64,7 @@ def client_config():
         'dbus': False,
     }
 
+
 @pytest.fixture
 def config_file(tmpdir, faker):
     def generate_config(**kwargs):
@@ -68,8 +78,9 @@ def config_file(tmpdir, faker):
                 'test_tmp_fact.pickle'))
             config.set('Client', 'log_level', kwargs.get('log_level', 'debug'))
             config.set('Client', 'log_console', kwargs.get('log_console', '0'))
-            #config.set('Client', 'log_file', kwargs.get('log_file', '0'))
-            config.set('Client', 'log_filename', kwargs.get('log_filename', faker.file_name()))
+            config.set('Client', 'log_file', kwargs.get('log_file', '0'))
+            config.set('Client', 'log_filename', kwargs.get('log_filename',
+                faker.file_name()))
             config.set('Client', 'dbus', kwargs.get('dbus', '0'))
 
             config.add_section('Backend')
@@ -106,8 +117,10 @@ def controler(lib_config, client_config):
     controler = hamsterlib.HamsterControl(lib_config)
     controler.client_config = client_config
     yield controler
-    if os.path.isfile(os.path.join(client_config['cwd'], client_config['tmp_filename'])):
-        os.remove(os.path.join(client_config['cwd'], client_config['tmp_filename']))
+    if os.path.isfile(os.path.join(client_config['cwd'],
+            client_config['tmp_filename'])):
+        os.remove(os.path.join(client_config['cwd'],
+            client_config['tmp_filename']))
     controler.store.cleanup()
 
 
@@ -119,6 +132,39 @@ def controler_with_logging(lib_config, client_config):
     # We souldn't shortcut like this!
     hamster_cli._setup_logging(controler)
     yield controler
-    if os.path.isfile(os.path.join(client_config['cwd'], client_config['tmp_filename'])):
-        os.remove(os.path.join(client_config['cwd'], client_config['tmp_filename']))
+    if os.path.isfile(os.path.join(client_config['cwd'],
+            client_config['tmp_filename'])):
+        os.remove(os.path.join(client_config['cwd'],
+            client_config['tmp_filename']))
     controler.store.cleanup()
+
+
+@pytest.fixture(params=[
+    ('', '', {
+        'search_term': '',
+        'start': None,
+        'end': None,
+    }),
+    ('', '2015-12-12 18:00 2015-12-12 19:30', {
+        'search_term': '',
+        'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
+        'end': datetime.datetime(2015, 12, 12, 19, 30, 0)
+    }),
+    ('', '2015-12-12 18:00', {
+        'search_term': '',
+        'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
+        'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
+    }),
+    ('', '2015-12-12', {
+        'search_term': '',
+        'start': datetime.datetime(2015, 12, 12, 0, 0, 0),
+        'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
+    }),
+    ('', '13:00', {
+        'search_term': '',
+        'start': datetime.datetime(2015, 12, 12, 13, 0, 0),
+        'end': datetime.datetime(2015, 12, 12, 23, 59, 59),
+    }),
+])
+def search_parameter_parametrized(request):
+    return request.param
