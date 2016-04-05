@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-import pickle as pickle
 import sys
 from collections import namedtuple
 from gettext import gettext as _
@@ -15,7 +14,6 @@ try:
     from configparser import SafeConfigParser
 except:
     from ConfigParser import SafeConfigParser
-
 
 
 """
@@ -32,17 +30,18 @@ Note:
     ongoing Facts to the client.
     In case of this CLI we just use a pickled tmp-file and be done with it.
 
-    * For information about unicode handling, see: http://click.pocoo.org/6/python3/#python3-surrogates
-        This should be alright for our usecase, as any properly user environment should have
-        its unicode locale declared. And if not, its acceptable to bully the user to do so.
+    * For information about unicode handling, see:
+        http://click.pocoo.org/6/python3/#python3-surrogates This should be alright for
+        our usecase, as any properly user environment should have its unicode locale declared.
+        And if not, its acceptable to bully the user to do so.
 
     * Click commands deal only with strings. So quite often, the first thing our
-        custom command-functions will do is provide some basic type conversion and error checking.
-        before calling the corresponding lib method.
-    * Whilst the backend usualy either returns results or Errors, the client should  always try to
-        handle those errors which are predictable and turn them into user relevant command line
-        output. Only actual errors that are not part of the expected user interaction shall
-        get through as exceptions.
+        custom command-functions will do is provide some basic type conversion and
+        error checking. before calling the corresponding lib method.
+    * Whilst the backend usualy either returns results or Errors, the client should
+        always try to handle those errors which are predictable and turn them into user
+        relevant command line output. Only actual errors that are not part of the expected
+        user interaction shall get through as exceptions.
 """
 
 CONFIGFILE_PATH = './config.ini'
@@ -226,6 +225,7 @@ def _stop(controler):
         controler.client_logger.info(_("Temporary fact stoped."))
         click.echo(_("Temporary fact stoped!"))
 
+
 @run.command()
 @pass_controler
 def cancel(controler):
@@ -243,16 +243,16 @@ def _cancel(controler):
     # [FIXME]
     # Currently not implemented in the backend!
 
-    #tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    #if tmp_fact:
-    #    _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    #    message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
-    #    click.echo(message)
-    #    controler.client_logger.debug(message)
-    #else:
+    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
+    # if tmp_fact:
+    #     _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
+    #     message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
+    #     click.echo(message)
+    #     controler.client_logger.debug(message)
+    # else:
     #    message = _("Nothing tracked right now. Not doing anything.")
-    #    click.echo(message)
-    #    controler.client_logger.info(message)
+    #     click.echo(message)
+    #     controler.client_logger.info(message)
     pass
 
 
@@ -323,10 +323,10 @@ def _current(controler):
     # [FIXME]
     # Implementation currently missing in ``hamsterlib``.
 
-    #tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    #if tmp_fact:
-    #    click.echo(tmp_fact)
-    #else:
+    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
+    # if tmp_fact:
+    #     click.echo(tmp_fact)
+    # else:
     #    click.echo(_("There seems no be no activity beeing tracked right now."
     #                 " maybe you want to *start* tracking one right now?"
     #                 ))
@@ -409,9 +409,11 @@ def _setup_logging(controler):
         lib_logger.addHandler(file_handler)
         client_logger.addHandler(file_handler)
 
+
 def _launch_window(window_type):
     """If ``hamster_gtk`` as well as ``dbus`` are present, launch the given window."""
     raise NotImplementedError
+
 
 def _get_config(file_path):
     """
@@ -506,6 +508,7 @@ def _get_config(file_path):
 
     return (get_backend_config(config), get_client_config(config))
 
+
 def _generate_facts_table(facts):
     """
     Create a nice looking table representing a set of fact instances.
@@ -545,7 +548,7 @@ def _generate_facts_table(facts):
             end=fact.end.strftime('%Y-%m-%d %H:%M'),
             # [TODO]
             # Use ``Fact.get_string_delta`` instead!
-            delta='{minutes} min.'.format(minutes=(int(fact.delta.total_seconds()/60))),
+            delta='{minutes} min.'.format(minutes=(int(fact.delta.total_seconds() / 60))),
         ))
 
     return (table, header)
