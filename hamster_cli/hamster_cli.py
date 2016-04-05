@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-import pickle as pickle
 import sys
 from collections import namedtuple
 from gettext import gettext as _
@@ -17,7 +16,7 @@ except:
     from ConfigParser import SafeConfigParser
 
 
-
+"""
 The rough idea of the original CLI was that it allows to start a Fact and then,
 at some later point one would stop the "current" activity.
 On top of that it realy then is just some listing/exporting capabilities.
@@ -30,6 +29,19 @@ Note:
     We stick with our doctrine of only storing complete Facts and deligating
     ongoing Facts to the client.
     In case of this CLI we just use a pickled tmp-file and be done with it.
+
+    * For information about unicode handling, see:
+        http://click.pocoo.org/6/python3/#python3-surrogates This should be alright for
+        our usecase, as any properly user environment should have its unicode locale declared.
+        And if not, its acceptable to bully the user to do so.
+
+    * Click commands deal only with strings. So quite often, the first thing our
+        custom command-functions will do is provide some basic type conversion and
+        error checking. before calling the corresponding lib method.
+    * Whilst the backend usualy either returns results or Errors, the client should
+        always try to handle those errors which are predictable and turn them into user
+        relevant command line output. Only actual errors that are not part of the expected
+        user interaction shall get through as exceptions.
 """
 
 CONFIGFILE_PATH = './config.ini'
@@ -37,9 +49,11 @@ CONFIGFILE_PATH = './config.ini'
 
 class Controler(HamsterControl):
     def __init__(self):
+        """Instantiate controler instance and adding client_config to it."""
         lib_config, client_config = _get_config(CONFIGFILE_PATH)
         super(Controler, self).__init__(lib_config)
         self.client_config = client_config
+
 
 pass_controler = click.make_pass_decorator(Controler, ensure=True)
 
@@ -52,7 +66,7 @@ def run(controler):
 
 
 def _run(controler):
-    """See `run` for details."""
+    """Make sure that loggers are setup properly"""
     _setup_logging(controler)
 
 
@@ -61,22 +75,39 @@ def _run(controler):
 @click.argument('time_range', default='')
 @pass_controler
 def search(controler, search_term, time_range):
+    """
+    Search facts maching given timerange and search term. Both are optional.
+
+    Matching facts will be printed in a tabular representation.
+
+    Args:
+        search_term: Term that need to be matched by the fact in order to be considered a hit.
+        time_range (optional): Only fact within this timerange will be considered.
+
+    """
     _search(search_term, time_range)
 
 
 def _search(controler, search_term, time_range):
+    """
+    Refer to ``search`` for general information.
+
+    Make sure that arguments are converted into apropiate types before passing
+    them on to the backend.
+
+    We leave it to the backend to first parse the timeinfo and then complete any
+    missing data based on the passed config settings.
+    """
+
     if not time_range:
         start, end = (None, None)
     else:
-        start, end = helpers.complete_timeframe(
-            helpers.parse_time_range(time_range),
-            controler.config['day_start'],
-            controler.config['day_end']
-        )
+        start, end = helpers.complete_timeframe(helpers.parse_time_range(time_range),
+            controler.config)
 
-    results = controler.facts.get_all(search_term=search_term, start=start,
-        end=end)
-    table, headers = _generate_table(results)
+    results = controler.facts.get_all(search_term=search_term, start=start, end=end)
+
+    table, headers = _generate_facts_table(results)
     click.echo(tabulate(table, headers=headers))
 
 
@@ -87,7 +118,13 @@ def list(controler, time_range):
     """
     List facts within a date range.
 
-    This is effectivly just a specical version of `search`
+    Matching facts will be printed in a tabular representation.
+
+    Args:
+        time_range (optional): Only fact within this timerange will be considered.
+
+    Note:
+        * This is effectivly just a specical version of `search`
     """
     _search(time_range=time_range)
 
@@ -98,76 +135,125 @@ def list(controler, time_range):
 @click.argument('end', default='')
 @pass_controler
 def start(controler, raw_fact, start, end):
-    """Start or add a fact."""
+    """Start or add a fact.
+
+    Args:
+        raw_fact: ``raw_fact`` containing information about the Fact to be started. As an absolute
+            minimum this must be a string representing the 'activityname'.
+        start (optional): When does the fact start?
+        end (optional): When does the fact end?
+    """
+    # [FIXME]
+    # The original semantics do not work anymore. As we make a clear difference
+    # between *adding* a (complete) fact and *starting* a (ongoing) fact.
+    # This needs to be reflected in this command.
     _start(controler, raw_fact, start, end)
 
 
 def _start(controler, raw_fact, start, end):
-    """See `start` for details."""
+    """See `start` for details.
 
-    fact = controler.parse_raw_fact(raw_fact)
+    Note:
+        * Whilst it is possible to pass timeinformation as part of the ``raw_fact`` as
+            well as dedicated ``start`` and ``end`` arguments only the latter will be represented
+            in the resulting fact in such a case.
+    """
+
+    fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:
         fact.start = helpers.parse_time(start)
     if end:
         fact.end = helpers.parse_time(end)
-    if not fact.start:
-        fact.start = start or datetime.datetime.now()
-    if not fact.end and end:
-        fact.end = end
+
+    if not fact.end:
+        # We seem to want to start a new tmp fact
+        # Until we decide wether to split this into start/add command we use the
+        # presence of any 'end' information as indication of the users intend.
+        tmp_fact = True
+    else:
+        tmp_fact = False
+
+    # We complete the facts times in both cases as even an new 'ongoing' fact
+    # may be in need of some time-completion for its start information.
+
+    # Complete missing fields with default values.
+    # legacy hamster_cli seems to have a different fallback behaviour than
+    # our regular backend, in particular the way 'day_start' is handled.
+    # For maximum consistency we use the backends unified ``complete_timeframe``
+    # helper instead. If behaviour similar to the legacy hamster-cli is desired,
+    # all that seems needed is to change ``day_start`` to '00:00'.
+
+    timeframe = helpers.TimeFrame(fact.start.date, fact.start.time, fact.end.start, fact.end.time)
+    fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.lib_config)
+
+    if tmp_fact:
+        # Quick fix for tmp facts. that way we can use the default helper
+        # function which will autocomplete the end info as well.
+        fact.end = None
 
     controler.client_logger.debug(_(
         "New fact instance created: {fact}".format(fact=fact)
     ))
-    if not fact.end:
-        # We seem to want to start a new tmp fact
-        fact = _start_tmp_fact(controler, fact)
-    else:
-        # We seem to add a complete fact
-        fact = _add_fact(controler, fact)
+    fact = controler.facts.save(fact)
 
 
 @run.command()
 @pass_controler
 def stop(controler):
-    """Stop tracking current activity. Saving the result."""
+    """
+    Stop tracking current fact. Saving the result.
+
+    Provide a confirmation/failure message to the user.
+    """
     _stop(controler)
 
 
 def _stop(controler):
-    fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    if fact:
-        fact.end = datetime.datetime.now()
-        fact = controler.facts.save(fact)
-        _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
-        controler.client_logger.debug(_("Temporary fact stoped."))
-        click.echo(_("Temporary fact stoped!"))
-    else:
+    """Stop cucrrent 'ongoing fact' and save it to the backend. See ``stop`` for details."""
+    try:
+        controler.facts.stop_tmp_fact()
+    except ValueError:
         controler.client_logger.info(_(
             "Trying to stop a non existing ongoing fact."
         ))
-        click.echo(_("Unable to continue temporary fact. Are you sure there"
-                     " is one? Try running *current*."))
+        click.echo(_(
+            "Unable to continue temporary fact. Are you sure there is one?"
+            "Try running *current*."
+        ))
+    else:
+        controler.client_logger.info(_("Temporary fact stoped."))
+        click.echo(_("Temporary fact stoped!"))
 
 
 @run.command()
 @pass_controler
 def cancel(controler):
+    """
+    Cancel 'ongoing fact'. E.g stop it without storing in the backend.
+
+
+    Provide a confirmation/failure message to the user.
+    """
     _cancel(controler)
 
 
 def _cancel(controler):
     """Cancel tracking current temporary fact, discaring the result."""
-    tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    if tmp_fact:
-        _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
-        message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
-        click.echo(message)
-        controler.client_logger.debug(message)
-    else:
-        message = _("Nothing tracked right now. Not doing anything.")
-        click.echo(message)
-        controler.client_logger.info(message)
+    # [FIXME]
+    # Currently not implemented in the backend!
+
+    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
+    # if tmp_fact:
+    #     _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
+    #     message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
+    #     click.echo(message)
+    #     controler.client_logger.debug(message)
+    # else:
+    #    message = _("Nothing tracked right now. Not doing anything.")
+    #     click.echo(message)
+    #     controler.client_logger.info(message)
+    pass
 
 
 @run.command()
@@ -176,33 +262,52 @@ def _cancel(controler):
 @click.argument('end', nargs=1, default='')
 @pass_controler
 def export(controler, format, start, end):
+    """
+    Export all facts of within a given timewindow to a file of specified format.
+
+    The resulting file will be exported to ``store.lib_config['work_dir']`` and be
+    named ``reports``. Its fileexension depends on the chosen format option.
+
+    Args:
+        format (optional): Export format. Currently supported options are: 'csv'.
+            Defaults to ``csv``.
+        start (optional): Start of timewindow. Defaults to ``empty string``.
+        end (optional): End of timewindow. Defaults to ``empty string``.
+    """
     _export(controler, format, start, end)
 
 
 def _export(controler, format, start, end):
-    filename = 'report.csv'
+    filename = 'report.{extention}'.format(extension=format)
+    filepath = os.path.join(controler.lib_config['work_dir'], filename)
     facts = controler.facts.get_all(start=start, end=end)
-    filepath = os.path.join(controler.client_config['cwd'], filename)
     if format == 'csv':
         writer = reports.TSVWriter(filepath)
+
+    if writer:
+        writer.write_report(facts)
+        click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
     else:
-        raise ValueError(_("Unrecognized export format."))
-    writer.write_report(facts)
+        click.echo(_("The format given has not been recognized as a valid option."))
 
 
 @run.command()
 @pass_controler
 def categories(controler):
     """"
-    List all existing categories.
+    List all existing categories, ordered by name.
 
-    Propabbly better as a sub command to list?
+    Note:
+        * Propabbly better as a sub command to list?
     """
     _categories(controler)
 
 
 def _categories(controler):
+    """For details, refer to ``categories``."""
     result = controler.categories.get_all()
+    # [TODO]
+    # Provide nicer looking tabulated output.
     for category in result:
         click.echo(category.name)
 
@@ -211,29 +316,41 @@ def _categories(controler):
 @pass_controler
 def current(controler):
     """Display current tmp fact."""
-
     _current(controler)
 
 
 def _current(controler):
-    tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    if tmp_fact:
-        click.echo(tmp_fact)
-    else:
-        click.echo(_("There seems no be no activity beeing tracked right now."
-                     " maybe you want to *start* tracking one right now?"
-                     ))
+    # [FIXME]
+    # Implementation currently missing in ``hamsterlib``.
+
+    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
+    # if tmp_fact:
+    #     click.echo(tmp_fact)
+    # else:
+    #    click.echo(_("There seems no be no activity beeing tracked right now."
+    #                 " maybe you want to *start* tracking one right now?"
+    #                 ))
+    pass
 
 
 @run.command()
 @click.argument('search_term', default='')
 @pass_controler
 def activities(controler, search_term):
-    """List all activity names."""
+    """
+    List all activits. Provide optional filtering by name.
+
+    Prints all matching activities one per line.
+
+    Args:
+        search (optional): String to be matched against activity name.
+
+    """
     _activities(controler, search_term)
 
 
 def _activities(controler, search_term):
+    """For details see ``activities``."""
     result = controler.activities.get_all(search_term=search_term)
     table = []
     headers = (_("Activity"), _("Category"))
@@ -243,7 +360,6 @@ def _activities(controler, search_term):
         else:
             category = None
         table.append((activity.name, category))
-
     click.echo(tabulate(table, headers=headers))
 
 
@@ -267,11 +383,12 @@ def about():
 
 # Helper functions
 def _setup_logging(controler):
+    """Setup logging for the lib_logger as well as client specific logging."""
     formatter = logging.Formatter(
         '[%(levelname)s] %(asctime)s %(name)s %(funcName)s:  %(message)s')
 
     lib_logger = controler.lib_logger
-    client_logger = logging.getLogger(__name__)
+    client_logger = logging.getLogger('hamster_cli')
     # Clear any existing (null)Handlers
     lib_logger.handlers = []
     client_logger.handlers = []
@@ -292,41 +409,20 @@ def _setup_logging(controler):
         lib_logger.addHandler(file_handler)
         client_logger.addHandler(file_handler)
 
-def _create_tmp_fact(filepath, fact):
-    """Create a temporary Fact."""
-    with open(filepath, 'wb') as fobj:
-        pickle.dump(fact, fobj)
-    return fact
-
-def _load_tmp_fact(filepath):
-    try:
-        with open(filepath, 'rb') as fobj:
-            fact = pickle.load(fobj)
-    except IOError:
-        fact = False
-    else:
-        if not isinstance(fact, Fact):
-            raise TypeError(_(
-                "Something went wrong. It seems our pickled file does not contain"
-                " valid Fact instance. [Content: '{content}'; Type: {type}".format(
-                    content=fact, type=type(fact))
-            ))
-    return fact
-
-def _remove_tmp_fact(filepath):
-    return os.remove(filepath)
-
-
-def _get_tmp_fact_path(config):
-    return os.path.join(
-        config['cwd'], config['tmp_filename']
-    )
-
 
 def _launch_window(window_type):
+    """If ``hamster_gtk`` as well as ``dbus`` are present, launch the given window."""
     raise NotImplementedError
 
+
 def _get_config(file_path):
+    """
+    Rertrieve config dictionaries for backend and client setup.
+
+    Returns:
+        tuple: ``backend_config, client_config)`` tuple, where each element is a
+            dictionary storing relevant config data.
+    """
     # [TODO]
     # We propably can make better use of configparsers default config optionn,
     # but for now this will do.
@@ -413,7 +509,7 @@ def _get_config(file_path):
     return (get_backend_config(config), get_client_config(config))
 
 
-def _generate_table(facts):
+def _generate_facts_table(facts):
     """
     Create a nice looking table representing a set of fact instances.
 
@@ -450,17 +546,9 @@ def _generate_table(facts):
             description=fact.description,
             start=fact.start.strftime('%Y-%m-%d %H:%M'),
             end=fact.end.strftime('%Y-%m-%d %H:%M'),
-            delta='{minutes} min.'.format(minutes=(int(fact.delta.total_seconds()/60))),
+            # [TODO]
+            # Use ``Fact.get_string_delta`` instead!
+            delta='{minutes} min.'.format(minutes=(int(fact.delta.total_seconds() / 60))),
         ))
 
     return (table, header)
-
-
-
-def _add_fact(controler, fact):
-    controler.client_logger.debug(_(
-        "Adding a new fact: {fact}".format(fact=fact)
-    ))
-    controler.facts.save(fact)
-    controler.client_logger.info(_("Fact saved to db."))
-    return True
