@@ -1,9 +1,7 @@
-import click
-import sys
-import pickle as pickle
 import datetime
 import logging
 import os
+import pickle as pickle
 import sys
 from collections import namedtuple
 from gettext import gettext as _
@@ -11,15 +9,14 @@ from gettext import gettext as _
 import click
 from tabulate import tabulate
 
-from hamsterlib import Fact, HamsterControl, helpers, reports
+from hamsterlib import (Activity, Category, Fact, HamsterControl, helpers,
+                        reports)
 
 try:
     from configparser import SafeConfigParser
 except:
     from ConfigParser import SafeConfigParser
 
-from hamsterlib import HamsterControl, Category, Activity, Fact
-from hamsterlib import helpers, reports
 
 
 """
@@ -159,13 +156,13 @@ def start(controler, raw_fact, start, end):
     # between *adding* a (complete) fact and *starting* a (ongoing) fact.
     # This needs to be reflected in this command.
     _start(controler, raw_fact, start, end)
-"))
 
     fact = controler.parse_raw_fact(raw_fact)
     if not fact.start:
         fact.start = start or datetime.datetime.now()
     if not fact.end and end:
         fact.end = end
+
 
 def _start(controler, raw_fact, start, end):
     """See `start` for details.
@@ -178,7 +175,7 @@ def _start(controler, raw_fact, start, end):
 
     # Handle empty strings.
     if not raw_fact:
-        sys.exit(_("Please provide a non-empty activity name.
+        sys.exit(_("Please provide a non-empty activity name."))
     fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:
@@ -478,9 +475,9 @@ def _get_config(file_path):
             'cwd': config.get('Client', 'cwd'),
             'tmp_filename': config.get('Client', 'tmp_filename'),
             'log_console': config.getboolean('Client', 'log_console'),
-            'log_file': log_file,
-            'log_filename': log_filename,
-            'log_level': log_level,
+            'log_file': config.getboolean('Client', 'log_file'),
+            'log_filename': config.get('Client', 'log_filename'),
+            'log_level': config.get('Client', 'log_level'),
             'dbus': config.getboolean('Client', 'dbus'),
         }
 

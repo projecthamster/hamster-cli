@@ -42,7 +42,7 @@ def lib_config():
         'store': 'sqlalchemy',
         'day_start': datetime.time(hour=0, minute=0, second=0),
         'day_end': datetime.time(hour=23, minute=59, second=59),
-        'db-path': 'sqlite:///:memory:',
+        'db_path': 'sqlite:///:memory:',
     }
 
 
