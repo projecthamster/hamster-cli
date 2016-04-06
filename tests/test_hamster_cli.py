@@ -9,9 +9,9 @@ from freezegun import freeze_time
 
 from hamster_cli import hamster_cli
 from hamsterlib import Fact
+import hamsterlib
 
 
-@pytest.mark.xfail
 class TestSearch(object):
     """Unit tests for search command."""
 
@@ -91,17 +91,16 @@ class TestStart(object):
         assert fact.category.name == expectation['category']
 
 
-@pytest.mark.xfail
 class TestStop(object):
     """Unit test concerning the stop command."""
 
     def test_stop_existing_tmp_fact(self, tmp_fact, controler_with_logging, mocker):
         """Make sure stoping an ongoing fact works as intended."""
-        controler = controler_with_logging
-        controler.facts.save = mocker.MagicMock()
-        hamster_cli._stop(controler)
-        assert controler.facts.save.called
+        controler_with_logging.facts._stop_tmp_fact = mocker.MagicMock()
+        hamster_cli._stop(controler_with_logging)
+        assert controler_with_logging.facts._stop_tmp_fact.called
 
+    @pytest.mark.xfail
     def test_stop_no_existing_tmp_fact(self, controler_with_logging, capsys):
         """Make sure that stop without actually an ongoing fact leads to an error."""
         controler = controler_with_logging
@@ -136,17 +135,16 @@ class TestExport():
     pass
 
 
-@pytest.mark.xfail
 class TestCategories():
     """Unittest related to category listings."""
 
     def test_categories(self, controler, category, mocker, capsys):
         """Make sure the categories get displayed to the user."""
-        controler.categories.get_all = mocker.MagicMock(
-            return_value=[category])
+        controler.categories.get_all = mocker.MagicMock(return_value=[category])
         hamster_cli._categories(controler)
         out, err = capsys.readouterr()
         assert category.name in out
+        assert controler.categories.get_all.called
 
 
 @pytest.mark.xfail
@@ -241,57 +239,6 @@ class TestSetupLogging():
 
 
 @pytest.mark.xfail
-class TestCreateTmpFact():
-    def test_create_tmp_fact(self, fact, tmpdir):
-        fobj = tmpdir.join('foo.pickle')
-        result = hamster_cli._create_tmp_fact(str(fobj.realpath()), fact)
-        assert os.path.isfile(str(fobj.realpath()))
-        assert result is fact
-
-
-@pytest.mark.xfail
-class TestLoadTmpFact():
-    def test_load_tmp_fact_no_file(self):
-        assert hamster_cli._load_tmp_fact('foobar.pickle') is False
-
-    def test_load_tmp_fact_no_fact_in_file(self, invalid_tmp_fact,
-            client_config):
-        with pytest.raises(TypeError):
-            hamster_cli._load_tmp_fact(client_config['tmp_filename'])
-
-    def test_load_tmp_fact(self, fact, tmp_fact, client_config):
-        result = hamster_cli._load_tmp_fact(client_config['tmp_filename'])
-        assert result.activity.name == fact.activity.name
-        assert isinstance(result, Fact)
-
-
-@pytest.mark.xfail
-class TestRemoveTmpFact():
-    """Unittests related to fact removal."""
-
-    def test_remove_tmp_fact(self, tmp_fact, client_config):
-        """Test that removal of the ongoing fact deletes the pickle file."""
-        hamster_cli._remove_tmp_fact(client_config['tmp_filename'])
-        assert os.path.isfile(client_config['tmp_filename']) is False
-
-    def test_remove_tmp_fact_no_file(self, client_config):
-        """Test that removal of a non existsing ongoing fact throws an error."""
-        with pytest.raises(OSError):
-            hamster_cli._remove_tmp_fact(client_config['tmp_filename'])
-
-
-@pytest.mark.xfail
-class TestGetTmpFactPath(object):
-    def test_get_path(self, controler, client_config):
-        """Make sure that we compose the path properly."""
-
-        # [TODO] Should find a way to do this without duplicating tested code.
-        result = hamster_cli._get_tmp_fact_path(client_config)
-        assert result == os.path.join(client_config['cwd'],
-            client_config['tmp_filename'])
-
-
-@pytest.mark.xfail
 class TestLaunchWindow(object):
     pass
 
@@ -344,22 +291,6 @@ class TestGenerateTable(object):
     def test_header(self):
         table, header = hamster_cli._generate_table([])
         assert len(header) == 6
-
-
-@pytest.mark.xfail
-class TestStartTmpFact(object):
-    """Unittests about the start of a new ongoing fact."""
-
-    def test_fact_exists(self, tmp_fact, controler, fact):
-        """Ensure that starting a new ongoing fact when one exists already throws an errror."""
-        with pytest.raises(TypeError):
-            hamster_cli._start_tmp_fact(controler, fact)
-
-    def test_fact_not_exist(self, controler_with_logging, fact, mocker):
-        """Test that we start a new fact if no ongoing fact is present."""
-        # [TODO] We should find a way to check that logging facilities were
-        # called.
-        assert hamster_cli._start_tmp_fact(controler_with_logging, fact)
 
 
 @pytest.mark.xfail

@@ -31,18 +31,18 @@ def runner():
 
 @pytest.fixture
 def base_config():
-    return lib_config, client_config
     """Provide a generic baseline configuration."""
+    return lib_config, client_config
 
 
 @pytest.fixture
-def lib_config():
+def lib_config(tmpdir):
     return {
-        'unsorted_localized': 'Unsorted',
+        'work_dir': tmpdir.mkdir('hamster_cli').strpath,
         'store': 'sqlalchemy',
         'day_start': datetime.time(hour=0, minute=0, second=0),
-        'day_end': datetime.time(hour=23, minute=59, second=59),
         'db_path': 'sqlite:///:memory:',
+        'tmpfile_name': 'test_tmp_fact.pickle',
     }
 
 
@@ -55,8 +55,6 @@ def client_config():
     type conversions.
     """
     return {
-        'cwd': '.',
-        'tmp_filename': 'test_tmp_fact.pickle',
         'log_level': 10,
         'log_console': False,
         'log_file': False,
@@ -99,10 +97,9 @@ def config_file(tmpdir, faker):
 
 
 @pytest.fixture
-def tmp_fact(client_config, fact):
-    with open(client_config['tmp_filename'], 'wb') as fobj:
-        fact.end = None
-        pickle.dump(fact, fobj)
+def tmp_fact(controler_with_logging, fact):
+    fact.end = None
+    fact = controler_with_logging.facts.save(fact)
     return fact
 
 
@@ -117,10 +114,10 @@ def controler(lib_config, client_config):
     controler = hamsterlib.HamsterControl(lib_config)
     controler.client_config = client_config
     yield controler
-    if os.path.isfile(os.path.join(client_config['cwd'],
-            client_config['tmp_filename'])):
-        os.remove(os.path.join(client_config['cwd'],
-            client_config['tmp_filename']))
+    if os.path.isfile(os.path.join(lib_config['work_dir'],
+            lib_config['tmpfile_name'])):
+        os.remove(os.path.join(lib_config['work_dir'],
+            lib_config['tmpfile_name']))
     controler.store.cleanup()
 
 
@@ -132,10 +129,10 @@ def controler_with_logging(lib_config, client_config):
     # We souldn't shortcut like this!
     hamster_cli._setup_logging(controler)
     yield controler
-    if os.path.isfile(os.path.join(client_config['cwd'],
-            client_config['tmp_filename'])):
-        os.remove(os.path.join(client_config['cwd'],
-            client_config['tmp_filename']))
+    if os.path.isfile(os.path.join(lib_config['work_dir'],
+            lib_config['tmpfile_name'])):
+        os.remove(os.path.join(lib_config['work_dir'],
+            lib_config['tmpfile_name']))
     controler.store.cleanup()
 
 

@@ -229,12 +229,12 @@ def stop(controler):
 def _stop(controler):
     """Stop cucrrent 'ongoing fact' and save it to the backend. See ``stop`` for details."""
     try:
-        controler.facts.stop_tmp_fact()
+        controler.facts._stop_tmp_fact()
     except ValueError:
         controler.client_logger.info(_(
             "Trying to stop a non existing ongoing fact."
         ))
-        click.echo(_(
+        sys.exit(_(
             "Unable to continue temporary fact. Are you sure there is one?"
             "Try running *current*."
         ))
