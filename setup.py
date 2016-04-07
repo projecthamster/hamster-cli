@@ -16,11 +16,9 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'Click',
+    'tabulate',
     'hamsterlib',
-]
-
-test_requirements = [
-    # TODO: put package test requirements here
+    'six',
 ]
 
 setup(
@@ -50,10 +48,4 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
-    test_suite='tests',
-    tests_require=test_requirements,
-    entry_points='''
-    [console_scripts]
-    hamsterlib-cli=hamster_cli.hamster_cli:run
-    ''',
 )

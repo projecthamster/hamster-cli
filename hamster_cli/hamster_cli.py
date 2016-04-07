@@ -6,9 +6,8 @@ from collections import namedtuple
 from gettext import gettext as _
 
 import click
-from tabulate import tabulate
-
 from hamsterlib import Fact, HamsterControl, helpers, reports
+from tabulate import tabulate
 
 try:
     from configparser import SafeConfigParser
@@ -29,6 +28,11 @@ Note:
     We stick with our doctrine of only storing complete Facts and deligating
     ongoing Facts to the client.
     In case of this CLI we just use a pickled tmp-file and be done with it.
+
+  To promote cleanness and seperation of concens we split the actual command
+    invocation and its click-integration from the logic ctriggered by that
+    that command. This has the added benefit of a clear seperation of unit and
+    integration tests.
 
     * For information about unicode handling, see:
         http://click.pocoo.org/6/python3/#python3-surrogates This should be alright for
@@ -149,6 +153,12 @@ def start(controler, raw_fact, start, end):
     # This needs to be reflected in this command.
     _start(controler, raw_fact, start, end)
 
+    fact = controler.parse_raw_fact(raw_fact)
+    if not fact.start:
+        fact.start = start or datetime.datetime.now()
+    if not fact.end and end:
+        fact.end = end
+
 
 def _start(controler, raw_fact, start, end):
     """See `start` for details.
@@ -159,6 +169,9 @@ def _start(controler, raw_fact, start, end):
             in the resulting fact in such a case.
     """
 
+    # Handle empty strings.
+    if not raw_fact:
+        sys.exit(_("Please provide a non-empty activity name."))
     fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:
@@ -212,12 +225,12 @@ def stop(controler):
 def _stop(controler):
     """Stop cucrrent 'ongoing fact' and save it to the backend. See ``stop`` for details."""
     try:
-        controler.facts.stop_tmp_fact()
+        controler.facts._stop_tmp_fact()
     except ValueError:
         controler.client_logger.info(_(
             "Trying to stop a non existing ongoing fact."
         ))
-        click.echo(_(
+        sys.exit(_(
             "Unable to continue temporary fact. Are you sure there is one?"
             "Try running *current*."
         ))
@@ -278,17 +291,26 @@ def export(controler, format, start, end):
 
 
 def _export(controler, format, start, end):
-    filename = 'report.{extention}'.format(extension=format)
-    filepath = os.path.join(controler.lib_config['work_dir'], filename)
+    accepted_formats = ['csv']
+    # [TODO]
+    # Once hamsterlib has a proper 'export' register available we should be able
+    # to streamline this.
+    if format not in accepted_formats:
+        message = _("Unrecocgnized export format recieved")
+        controler.client_logger.info(message)
+        sys.exit(message)
+    if not start:
+        start = None
+    if not end:
+        end = None
+
+    filename = 'report.{extension}'.format(extension=format)
+    filepath = os.path.join(controler.config['work_dir'], filename)
     facts = controler.facts.get_all(start=start, end=end)
     if format == 'csv':
         writer = reports.TSVWriter(filepath)
-
-    if writer:
         writer.write_report(facts)
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
-    else:
-        click.echo(_("The format given has not been recognized as a valid option."))
 
 
 @run.command()
@@ -316,6 +338,7 @@ def _categories(controler):
 @pass_controler
 def current(controler):
     """Display current tmp fact."""
+
     _current(controler)
 
 
@@ -360,6 +383,7 @@ def _activities(controler, search_term):
         else:
             category = None
         table.append((activity.name, category))
+
     click.echo(tabulate(table, headers=headers))
 
 
@@ -454,8 +478,9 @@ def _get_config(file_path):
             'cwd': config.get('Client', 'cwd'),
             'tmp_filename': config.get('Client', 'tmp_filename'),
             'log_console': config.getboolean('Client', 'log_console'),
-            'log_filename': log_filename,
-            'log_level': log_level,
+            'log_file': config.getboolean('Client', 'log_file'),
+            'log_filename': config.get('Client', 'log_filename'),
+            'log_level': config.get('Client', 'log_level'),
             'dbus': config.getboolean('Client', 'dbus'),
         }
 
