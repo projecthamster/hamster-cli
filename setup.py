@@ -20,10 +20,6 @@ requirements = [
     'hamsterlib',
 ]
 
-test_requirements = [
-    # TODO: put package test requirements here
-]
-
 setup(
     name='hamster_cli',
     version='0.0.1',
@@ -51,10 +47,4 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
-    test_suite='tests',
-    tests_require=test_requirements,
-    entry_points='''
-    [console_scripts]
-    hamsterlib-cli=hamster_cli.hamster_cli:run
-    ''',
 )
