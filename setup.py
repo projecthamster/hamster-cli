@@ -17,6 +17,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'Click',
     'tabulate',
+    'hamsterlib',
 ]
 
 test_requirements = [
@@ -36,7 +37,6 @@ setup(
     ],
     package_dir={'hamster_cli':
                  'hamster_cli'},
-    #include_package_data=True,
     install_requires=requirements,
     license="GPL3",
     zip_safe=False,
