@@ -295,17 +295,26 @@ def export(controler, format, start, end):
 
 
 def _export(controler, format, start, end):
-    filename = 'report.{extention}'.format(extension=format)
-    filepath = os.path.join(controler.lib_config['work_dir'], filename)
+    accepted_formats = ['csv']
+    # [TODO]
+    # Once hamsterlib has a proper 'export' register available we should be able
+    # to streamline this.
+    if format not in accepted_formats:
+        message = _("Unrecocgnized export format recieved")
+        controler.client_logger.info(message)
+        sys.exit(message)
+    if not start:
+        start = None
+    if not end:
+        end = None
+
+    filename = 'report.{extension}'.format(extension=format)
+    filepath = os.path.join(controler.config['work_dir'], filename)
     facts = controler.facts.get_all(start=start, end=end)
     if format == 'csv':
         writer = reports.TSVWriter(filepath)
-
-    if writer:
         writer.write_report(facts)
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
-    else:
-        click.echo(_("The format given has not been recognized as a valid option."))
 
 
 @run.command()
@@ -398,8 +407,6 @@ def statistics():
 def about():
     """Show about window."""
     _launch_window('about')
-
-
 
 
 # Helper functions

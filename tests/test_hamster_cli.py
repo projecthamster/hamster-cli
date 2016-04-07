@@ -129,17 +129,32 @@ class TestCancel():
         assert 'Nothing tracked right now' in out
 
 
-@pytest.mark.xfail
 class TestExport():
     """Unittests related to data export."""
-    pass
+    @pytest.mark.parametrize('format', ['ical', 'html'])
+    def test_invalid_format(self, controler_with_logging, format, mocker):
+        """Make sure that passing an invalid format exits prematurely."""
+        controler = controler_with_logging
+        hamster_cli.sys.exit = mocker.MagicMock()
+        hamster_cli._export(controler, format, None, None)
+        assert hamster_cli.sys.exit.called
+
+    def test_valid_format(self, controler, controler_with_logging, tmpdir, mocker):
+        """Make sure that a valid format returns the apropiate writer class."""
+        path = os.path.join(tmpdir.mkdir('report').strpath, 'report.csv')
+        hamsterlib.reports.TSVWriter = mocker.MagicMock(return_value=hamsterlib.reports.TSVWriter(
+            path))
+        hamster_cli._export(controler, 'csv', None, None)
+        assert hamsterlib.reports.TSVWriter.called
+
 
 
 class TestCategories():
     """Unittest related to category listings."""
 
-    def test_categories(self, controler, category, mocker, capsys):
+    def test_categories(self, controler_with_logging, category, mocker, capsys):
         """Make sure the categories get displayed to the user."""
+        controler = controler_with_logging
         controler.categories.get_all = mocker.MagicMock(return_value=[category])
         hamster_cli._categories(controler)
         out, err = capsys.readouterr()
@@ -164,7 +179,6 @@ class TestCurrent():
         assert 'no activity beeing tracked' in out
 
 
-@pytest.mark.xfail
 class TestActivities():
     def test_activities_no_category(self, controler, activity, mocker, capsys):
         activity.category = None
@@ -200,7 +214,6 @@ class TestActivities():
         assert activity.category.name in out
 
 
-@pytest.mark.xfail
 class TestSetupLogging():
     def test_setup_logging(self, controler, client_config, lib_config):
         hamster_cli._setup_logging(controler)
@@ -238,17 +251,16 @@ class TestSetupLogging():
         assert controler.client_logger.handlers == []
 
 
-@pytest.mark.xfail
 class TestLaunchWindow(object):
     pass
 
 
-@pytest.mark.xfail
 class TestGetConfig(object):
     def test_cwd(self, config_file):
         backend, client = hamster_cli._get_config(config_file())
         assert client['cwd'] == '.'
 
+    @pytest.mark.xfail
     @pytest.mark.parametrize('log_level', ['debug'])
     def test_log_levels_valid(self, log_level, config_file):
         backend, client = hamster_cli._get_config(
