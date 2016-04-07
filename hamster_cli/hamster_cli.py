@@ -6,7 +6,7 @@ from collections import namedtuple
 from gettext import gettext as _
 
 import click
-from hamsterlib import (Fact, HamsterControl, helpers, reports)
+from hamsterlib import Fact, HamsterControl, helpers, reports
 from tabulate import tabulate
 
 try:
