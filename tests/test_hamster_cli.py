@@ -4,12 +4,11 @@ import datetime
 import logging
 import os
 
+import hamsterlib
 import pytest
 from freezegun import freeze_time
 
 from hamster_cli import hamster_cli
-from hamsterlib import Fact
-import hamsterlib
 
 
 class TestSearch(object):
@@ -146,7 +145,6 @@ class TestExport():
             path))
         hamster_cli._export(controler, 'csv', None, None)
         assert hamsterlib.reports.TSVWriter.called
-
 
 
 class TestCategories():

@@ -1,22 +1,18 @@
 import datetime
 import logging
 import os
-import pickle as pickle
 import sys
 from collections import namedtuple
 from gettext import gettext as _
 
 import click
+from hamsterlib import (Fact, HamsterControl, helpers, reports)
 from tabulate import tabulate
-
-from hamsterlib import (Activity, Category, Fact, HamsterControl, helpers,
-                        reports)
 
 try:
     from configparser import SafeConfigParser
 except:
     from ConfigParser import SafeConfigParser
-
 
 
 """

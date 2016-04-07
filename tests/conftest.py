@@ -2,12 +2,12 @@ import datetime
 import os
 import pickle as pickle
 
+import hamsterlib
 import pytest
 from click.testing import CliRunner
 from pytest_factoryboy import register
 
 import hamster_cli.hamster_cli as hamster_cli
-import hamsterlib
 
 from . import factories
 
