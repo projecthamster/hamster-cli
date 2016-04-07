@@ -18,6 +18,7 @@ requirements = [
     'Click',
     'tabulate',
     'hamsterlib',
+    'six',
 ]
 
 setup(
