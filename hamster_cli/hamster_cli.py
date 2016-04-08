@@ -528,7 +528,8 @@ def _get_config(file_path):
             'day_end': day_end,
             'unsorted_localized': config.get('Backend', 'unsorted_localized'),
             'store': store,
-            'db-path': config.get('Backend', 'db_path')
+            'db-path': config.get('Backend', 'db_path'),
+            'fact_min_delta': config.get('Backend', 'fact_min_delta'),
         }
 
     config = SafeConfigParser()
