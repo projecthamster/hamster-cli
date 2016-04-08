@@ -171,7 +171,7 @@ def _start(controler, raw_fact, start, end):
 
     # Handle empty strings.
     if not raw_fact:
-        sys.exit(_("Please provide a non-empty activity name."))
+        raise click.ClickException(_("Please provide a non-empty activity name."))
     fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:
@@ -181,6 +181,8 @@ def _start(controler, raw_fact, start, end):
 
     if not fact.end:
         # We seem to want to start a new tmp fact
+        # Neither the raw fact string nor an additional optional end time have
+        # been passed.
         # Until we decide wether to split this into start/add command we use the
         # presence of any 'end' information as indication of the users intend.
         tmp_fact = True
@@ -197,8 +199,17 @@ def _start(controler, raw_fact, start, end):
     # helper instead. If behaviour similar to the legacy hamster-cli is desired,
     # all that seems needed is to change ``day_start`` to '00:00'.
 
-    timeframe = helpers.TimeFrame(fact.start.date, fact.start.time, fact.end.start, fact.end.time)
-    fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.lib_config)
+    # The following is needed becauses end may be ``None``.
+    if not fact.end:
+        end_date = None
+        end_time = None
+    else:
+        end_date = fact.end.date()
+        end_time = fact.end.time()
+
+    timeframe = helpers.TimeFrame(fact.start.date(), fact.start.time(),
+        end_date, end_time, None)
+    fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
 
     if tmp_fact:
         # Quick fix for tmp facts. that way we can use the default helper
@@ -225,15 +236,13 @@ def stop(controler):
 def _stop(controler):
     """Stop cucrrent 'ongoing fact' and save it to the backend. See ``stop`` for details."""
     try:
-        controler.facts._stop_tmp_fact()
+        controler.facts.stop_tmp_fact()
     except ValueError:
-        controler.client_logger.info(_(
-            "Trying to stop a non existing ongoing fact."
-        ))
-        sys.exit(_(
+        message = _(
             "Unable to continue temporary fact. Are you sure there is one?"
             "Try running *current*."
-        ))
+        )
+        raise click.ClickException(message)
     else:
         controler.client_logger.info(_("Temporary fact stoped."))
         click.echo(_("Temporary fact stoped!"))
@@ -253,20 +262,16 @@ def cancel(controler):
 
 def _cancel(controler):
     """Cancel tracking current temporary fact, discaring the result."""
-    # [FIXME]
-    # Currently not implemented in the backend!
-
-    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    # if tmp_fact:
-    #     _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    #     message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
-    #     click.echo(message)
-    #     controler.client_logger.debug(message)
-    # else:
-    #    message = _("Nothing tracked right now. Not doing anything.")
-    #     click.echo(message)
-    #     controler.client_logger.info(message)
-    pass
+    try:
+        controler.facts.cancel_tmp_fact()
+    except KeyError:
+        message = _("Nothing tracked right now. Not doing anything.")
+        controler.client_logger.info(message)
+        raise click.ClickException(message)
+    else:
+        message = _("Tracking canceled.")
+        click.echo(message)
+        controler.client_logger.debug(message)
 
 
 @run.command()
@@ -343,17 +348,16 @@ def current(controler):
 
 
 def _current(controler):
-    # [FIXME]
-    # Implementation currently missing in ``hamsterlib``.
-
-    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    # if tmp_fact:
-    #     click.echo(tmp_fact)
-    # else:
-    #    click.echo(_("There seems no be no activity beeing tracked right now."
-    #                 " maybe you want to *start* tracking one right now?"
-    #                 ))
-    pass
+    try:
+        fact = controler.facts.get_tmp_fact()
+    except KeyError:
+        message = _(
+            "There seems no be no activity beeing tracked right now."
+            " maybe you want to *start* tracking one right now?"
+        )
+        raise click.ClickException(message)
+    else:
+        click.echo(fact)
 
 
 @run.command()
