@@ -6,8 +6,8 @@ import os
 
 import hamsterlib
 import pytest
-from freezegun import freeze_time
 from click import ClickException
+from freezegun import freeze_time
 
 from hamster_cli import hamster_cli
 
