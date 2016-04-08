@@ -71,6 +71,7 @@ class TestStart(object):
         assert fact.activity.name == expectation['activity']
         assert fact.category.name == expectation['category']
 
+
 class TestStop(object):
     """Unit test concerning the stop command."""
 
