@@ -7,6 +7,7 @@ import os
 import hamsterlib
 import pytest
 from freezegun import freeze_time
+from click import ClickException
 
 from hamster_cli import hamster_cli
 
@@ -95,20 +96,19 @@ class TestStop(object):
 
     def test_stop_existing_tmp_fact(self, tmp_fact, controler_with_logging, mocker):
         """Make sure stoping an ongoing fact works as intended."""
-        controler_with_logging.facts._stop_tmp_fact = mocker.MagicMock()
+        controler_with_logging.facts.stop_tmp_fact = mocker.MagicMock()
         hamster_cli._stop(controler_with_logging)
-        assert controler_with_logging.facts._stop_tmp_fact.called
+        assert controler_with_logging.facts.stop_tmp_fact.called
 
-    @pytest.mark.xfail
     def test_stop_no_existing_tmp_fact(self, controler_with_logging, capsys):
         """Make sure that stop without actually an ongoing fact leads to an error."""
         controler = controler_with_logging
-        hamster_cli._stop(controler)
-        out, err = capsys.readouterr()
-        assert 'Unable to continue' in out
+        with pytest.raises(ClickException):
+            hamster_cli._stop(controler)
+            out, err = capsys.readouterr()
+            assert 'Unable to continue' in err
 
 
-@pytest.mark.xfail
 class TestCancel():
     """Unit tests related to cancelation of an ongoing fact."""
 
@@ -116,16 +116,19 @@ class TestCancel():
             capsys):
         """Test cancelation in case there is an ongoing fact."""
         controler = controler_with_logging
-        mocker.patch('hamster_cli.hamster_cli._remove_tmp_fact')
+        controler.facts.cancel_tmp_fact = mocker.MagicMock(return_value=None)
         hamster_cli._cancel(controler)
         out, err = capsys.readouterr()
+        assert controler.facts.cancel_tmp_fact.called
         assert 'canceled' in out
 
     def test_cancel_no_existing_tmp_fact(self, controler_with_logging, capsys):
         """Test cancelation in case there is no actual ongoing fact."""
-        hamster_cli._cancel(controler_with_logging)
-        out, err = capsys.readouterr()
-        assert 'Nothing tracked right now' in out
+        with pytest.raises(ClickException):
+            hamster_cli._cancel(controler_with_logging)
+            out, err = capsys.readouterr()
+            print(out, err)
+            assert 'Nothing tracked right now' in err
 
 
 class TestExport():
@@ -160,21 +163,25 @@ class TestCategories():
         assert controler.categories.get_all.called
 
 
-@pytest.mark.xfail
 class TestCurrent():
     """Unittest for dealing with 'ongoing facts'."""
 
-    def test_tmp_fact(self, controler, tmp_fact, capsys):
+    def test_tmp_fact(self, controler, tmp_fact, controler_with_logging, capsys, fact, mocker):
         """Make sure the current fact is displayed if there is one."""
+        controler = controler_with_logging
+        controler.facts.get_tmp_fact = mocker.MagicMock(return_value=fact)
         hamster_cli._current(controler)
         out, err = capsys.readouterr()
-        assert tmp_fact.activity.name in out
+        assert controler.facts.get_tmp_fact
+        assert str(fact) in out
 
-    def test_no_tmp_fact(self, controler, capsys):
+    def test_no_tmp_fact(self, controler_with_logging, capsys):
         """Make sure we display proper feedback if there is no current 'ongoing fact."""
-        hamster_cli._current(controler)
-        out, err = capsys.readouterr()
-        assert 'no activity beeing tracked' in out
+        controler = controler_with_logging
+        with pytest.raises(ClickException):
+            hamster_cli._current(controler)
+            out, err = capsys.readouterr()
+            assert 'There seems no be no activity beeing tracked right now' in err
 
 
 class TestActivities():

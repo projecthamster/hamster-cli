@@ -225,15 +225,13 @@ def stop(controler):
 def _stop(controler):
     """Stop cucrrent 'ongoing fact' and save it to the backend. See ``stop`` for details."""
     try:
-        controler.facts._stop_tmp_fact()
+        controler.facts.stop_tmp_fact()
     except ValueError:
-        controler.client_logger.info(_(
-            "Trying to stop a non existing ongoing fact."
-        ))
-        sys.exit(_(
+        message = _(
             "Unable to continue temporary fact. Are you sure there is one?"
             "Try running *current*."
-        ))
+        )
+        raise click.ClickException(message)
     else:
         controler.client_logger.info(_("Temporary fact stoped."))
         click.echo(_("Temporary fact stoped!"))
@@ -253,20 +251,16 @@ def cancel(controler):
 
 def _cancel(controler):
     """Cancel tracking current temporary fact, discaring the result."""
-    # [FIXME]
-    # Currently not implemented in the backend!
-
-    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    # if tmp_fact:
-    #     _remove_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    #     message = _("Tracking of {fact} canceled.".format(fact=tmp_fact))
-    #     click.echo(message)
-    #     controler.client_logger.debug(message)
-    # else:
-    #    message = _("Nothing tracked right now. Not doing anything.")
-    #     click.echo(message)
-    #     controler.client_logger.info(message)
-    pass
+    try:
+        controler.facts.cancel_tmp_fact()
+    except KeyError:
+        message = _("Nothing tracked right now. Not doing anything.")
+        controler.client_logger.info(message)
+        raise click.ClickException(message)
+    else:
+        message = _("Tracking canceled.")
+        click.echo(message)
+        controler.client_logger.debug(message)
 
 
 @run.command()
@@ -343,17 +337,16 @@ def current(controler):
 
 
 def _current(controler):
-    # [FIXME]
-    # Implementation currently missing in ``hamsterlib``.
-
-    # tmp_fact = _load_tmp_fact(_get_tmp_fact_path(controler.client_config))
-    # if tmp_fact:
-    #     click.echo(tmp_fact)
-    # else:
-    #    click.echo(_("There seems no be no activity beeing tracked right now."
-    #                 " maybe you want to *start* tracking one right now?"
-    #                 ))
-    pass
+    try:
+        fact = controler.facts.get_tmp_fact()
+    except KeyError:
+        message = _(
+            "There seems no be no activity beeing tracked right now."
+            " maybe you want to *start* tracking one right now?"
+        )
+        raise click.ClickException(message)
+    else:
+        click.echo(fact)
 
 
 @run.command()
