@@ -171,7 +171,7 @@ def _start(controler, raw_fact, start, end):
 
     # Handle empty strings.
     if not raw_fact:
-        sys.exit(_("Please provide a non-empty activity name."))
+        raise click.ClickException(_("Please provide a non-empty activity name."))
     fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:
@@ -181,6 +181,8 @@ def _start(controler, raw_fact, start, end):
 
     if not fact.end:
         # We seem to want to start a new tmp fact
+        # Neither the raw fact string nor an additional optional end time have
+        # been passed.
         # Until we decide wether to split this into start/add command we use the
         # presence of any 'end' information as indication of the users intend.
         tmp_fact = True
@@ -197,8 +199,17 @@ def _start(controler, raw_fact, start, end):
     # helper instead. If behaviour similar to the legacy hamster-cli is desired,
     # all that seems needed is to change ``day_start`` to '00:00'.
 
-    timeframe = helpers.TimeFrame(fact.start.date, fact.start.time, fact.end.start, fact.end.time)
-    fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.lib_config)
+    # The following is needed becauses end may be ``None``.
+    if not fact.end:
+        end_date = None
+        end_time = None
+    else:
+        end_date = fact.end.date()
+        end_time = fact.end.time()
+
+    timeframe = helpers.TimeFrame(fact.start.date(), fact.start.time(),
+        end_date, end_time, None)
+    fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
 
     if tmp_fact:
         # Quick fix for tmp facts. that way we can use the default helper

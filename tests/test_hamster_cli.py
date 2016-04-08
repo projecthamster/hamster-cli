@@ -24,7 +24,6 @@ class TestSearch(object):
         controler.facts.get_all.assert_called_with(**expectation)
 
 
-@pytest.mark.xfail
 class TestStart(object):
     """Unit test related to starting a new fact."""
 
@@ -41,25 +40,7 @@ class TestStart(object):
             'start': datetime.datetime(2015, 12, 12, 13, 0, 0),
             'end': datetime.datetime(2015, 12, 25, 18, 00, 0),
         }),
-    ])
-    @freeze_time('2015-12-25 18:00')
-    def test_start_add_new_fact(self, controler_with_logging, mocker, raw_fact,
-            start, end, expectation):
-        """
-        Test that inpul validation and assignment of start/endtime works is done as expected.
-        """
-        controler = controler_with_logging
-        mocker.patch('hamster_cli.hamster_cli._add_fact')
-        hamster_cli._start(controler, raw_fact, start, end)
-        assert hamster_cli._add_fact.called
-        args, kwargs = hamster_cli._add_fact.call_args
-        controler, fact = args
-        assert fact.start == expectation['start']
-        assert fact.end == expectation['end']
-        assert fact.activity.name == expectation['activity']
-        assert fact.category.name == expectation['category']
-
-    @pytest.mark.parametrize(('raw_fact', 'start', 'end', 'expectation'), [
+        # 'ongoing fact's
         ('foo@bar', '2015-12-12 13:00', '', {
             'activity': 'foo',
             'category': 'bar',
@@ -74,22 +55,21 @@ class TestStart(object):
         }),
     ])
     @freeze_time('2015-12-25 18:00')
-    def test_start_tmp_fact(self, mocker, controler_with_logging, raw_fact,
+    def test_start_add_new_fact(self, controler_with_logging, mocker, raw_fact,
             start, end, expectation):
         """
-        Test that input validation and assignment of start/endtime works is done as expected.
+        Test that inpul validation and assignment of start/endtime works is done as expected.
         """
         controler = controler_with_logging
-        mocker.patch('hamster_cli.hamster_cli._start_tmp_fact')
+        controler.facts.save = mocker.MagicMock()
         hamster_cli._start(controler, raw_fact, start, end)
-        assert hamster_cli._start_tmp_fact.called
-        args, kwargs = hamster_cli._start_tmp_fact.call_args
-        controler, fact = args
+        assert controler.facts.save.called
+        args, kwargs = controler.facts.save.call_args
+        fact = args[0]
         assert fact.start == expectation['start']
         assert fact.end == expectation['end']
         assert fact.activity.name == expectation['activity']
         assert fact.category.name == expectation['category']
-
 
 class TestStop(object):
     """Unit test concerning the stop command."""
