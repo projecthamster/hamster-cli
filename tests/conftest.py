@@ -43,6 +43,7 @@ def lib_config(tmpdir):
         'day_start': datetime.time(hour=0, minute=0, second=0),
         'db_path': 'sqlite:///:memory:',
         'tmpfile_name': 'test_tmp_fact.pickle',
+        'fact_min_delta': 60,
     }
 
 
@@ -91,6 +92,7 @@ def config_file(tmpdir, faker):
                 '23:59:59'))
             config.set('Backend', 'db_path', kwargs.get('db_path',
                 'postgres://hamsterlib:foobar@localhost/hamsterlib'))
+            config.set('Backend', 'fact_min_delta', kwargs.get('fact_min_delta', '60'))
             config.write(fobj)
         return path
     return generate_config
