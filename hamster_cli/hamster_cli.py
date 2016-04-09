@@ -62,7 +62,7 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context provider. Is triggered on all command calls."""
-    _run()
+    _run(controler)
 
 
 def _run(controler):
@@ -85,7 +85,7 @@ def search(controler, search_term, time_range):
         time_range (optional): Only fact within this timerange will be considered.
 
     """
-    _search(search_term, time_range)
+    _search(controler, search_term, time_range)
 
 
 def _search(controler, search_term, time_range):
@@ -126,7 +126,7 @@ def list(controler, time_range):
     Note:
         * This is effectivly just a specical version of `search`
     """
-    _search(time_range=time_range)
+    _search(controler, search_term='', time_range=time_range)
 
 
 @run.command()
