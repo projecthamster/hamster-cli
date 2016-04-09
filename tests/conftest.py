@@ -88,8 +88,6 @@ def config_file(tmpdir, faker):
             config.set('Backend', 'store', kwargs.get('store', 'sqlalchemy'))
             config.set('Backend', 'daystart', kwargs.get('daystart',
                 '00:00:00'))
-            config.set('Backend', 'dayend', kwargs.get('dayend',
-                '23:59:59'))
             config.set('Backend', 'db_path', kwargs.get('db_path',
                 'postgres://hamsterlib:foobar@localhost/hamsterlib'))
             config.set('Backend', 'fact_min_delta', kwargs.get('fact_min_delta', '60'))
