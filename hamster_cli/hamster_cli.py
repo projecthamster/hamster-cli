@@ -497,13 +497,6 @@ def _get_config(file_path):
         except ValueError:
             raise ValueError(_("We encountered an error when parsing configs"
                         "'day_start' value! Aborting ..."))
-        day_end = datetime.datetime.strptime(config.get('Backend', 'dayend'),
-            '%H:%M:%S').time()
-        if day_end < day_start:
-            sys.exit(_(
-                "Your 'day_end' time seems to be before 'day_start', please"
-                " please correct this."
-            ))
 
         # [FIXME]
         # Thhis should live with hamsterlib instead!
@@ -515,7 +508,6 @@ def _get_config(file_path):
 
         return {
             'day_start': day_start,
-            'day_end': day_end,
             'unsorted_localized': config.get('Backend', 'unsorted_localized'),
             'store': store,
             'db-path': config.get('Backend', 'db_path'),
