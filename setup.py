@@ -18,11 +18,12 @@ requirements = [
     'Click',
     'tabulate',
     'hamsterlib',
+    'six',
 ]
 
 setup(
     name='hamster_cli',
-    version='0.1.1',
+    version='0.1.2',
     description="A basic CLI for the hamster time tracker.",
     long_description=readme + '\n\n' + history,
     author="Eric Goller",
@@ -50,4 +51,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
+    entry_points='''
+        [console_scripts]
+    hamster-cli=hamster_cli.hamster_cli:run
+    '''
 )
