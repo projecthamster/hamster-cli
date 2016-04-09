@@ -293,7 +293,7 @@ def _export(controler, format, start, end):
     if format not in accepted_formats:
         message = _("Unrecocgnized export format recieved")
         controler.client_logger.info(message)
-        sys.exit(message)
+        raise click.ClickException(message)
     if not start:
         start = None
     if not end:

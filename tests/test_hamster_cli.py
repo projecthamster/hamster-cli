@@ -118,9 +118,8 @@ class TestExport():
     def test_invalid_format(self, controler_with_logging, format, mocker):
         """Make sure that passing an invalid format exits prematurely."""
         controler = controler_with_logging
-        hamster_cli.sys.exit = mocker.MagicMock()
-        hamster_cli._export(controler, format, None, None)
-        assert hamster_cli.sys.exit.called
+        with pytest.raises(ClickException):
+            hamster_cli._export(controler, format, None, None)
 
     def test_valid_format(self, controler, controler_with_logging, tmpdir, mocker):
         """Make sure that a valid format returns the apropiate writer class."""
