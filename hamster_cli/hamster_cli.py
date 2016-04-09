@@ -469,8 +469,7 @@ def _get_config(file_path):
             raise ValueError(_("Unrecognized log level value in config"))
 
         return {
-            'cwd': config.get('Client', 'cwd'),
-            'tmp_filename': config.get('Client', 'tmp_filename'),
+            'unsorted_localized': config.get('Backend', 'unsorted_localized'),
             'log_console': config.getboolean('Client', 'log_console'),
             'log_file': config.getboolean('Client', 'log_file'),
             'log_filename': config.get('Client', 'log_filename'),
@@ -507,10 +506,11 @@ def _get_config(file_path):
             sys.exit(_("Unrecognized store option."))
 
         return {
-            'day_start': day_start,
-            'unsorted_localized': config.get('Backend', 'unsorted_localized'),
+            'work_dir': config.get('Backend', 'work_dir'),
             'store': store,
+            'day_start': day_start,
             'db-path': config.get('Backend', 'db_path'),
+            'tmpfile_name': config.get('Client', 'tmpfile_name'),
             'fact_min_delta': config.get('Backend', 'fact_min_delta'),
         }
 
