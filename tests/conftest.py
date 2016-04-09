@@ -72,24 +72,23 @@ def config_file(tmpdir, faker):
             config = SafeConfigParser()
 
             config.add_section('Client')
-            config.set('Client', 'cwd', kwargs.get('cwd', '.'))
-            config.set('Client', 'tmp_filename', kwargs.get('tmp_filename',
-                'test_tmp_fact.pickle'))
-            config.set('Client', 'log_level', kwargs.get('log_level', 'debug'))
+            config.set('Client', 'unsorted_localized', kwargs.get(
+                'unsorted_localized', 'Unsorted'))
             config.set('Client', 'log_console', kwargs.get('log_console', '0'))
             config.set('Client', 'log_file', kwargs.get('log_file', '0'))
-            config.set('Client', 'log_filename', kwargs.get('log_filename',
-                faker.file_name()))
+            config.set('Client', 'log_filename', kwargs.get('log_filename', faker.file_name()))
+            config.set('Client', 'log_level', kwargs.get('log_level', 'debug'))
             config.set('Client', 'dbus', kwargs.get('dbus', '0'))
 
             config.add_section('Backend')
-            config.set('Backend', 'unsorted_localized', kwargs.get(
-                'unsorted_localized', 'Unsorted'))
+            config.set('Backend', 'work_dir', kwargs.get('work_dir', '.'))
             config.set('Backend', 'store', kwargs.get('store', 'sqlalchemy'))
             config.set('Backend', 'daystart', kwargs.get('daystart',
                 '00:00:00'))
             config.set('Backend', 'db_path', kwargs.get('db_path',
                 'postgres://hamsterlib:foobar@localhost/hamsterlib'))
+            config.set('Backend', 'tmpfile_name', kwargs.get('file_name',
+                'test_tmp_fact.pickle'))
             config.set('Backend', 'fact_min_delta', kwargs.get('fact_min_delta', '60'))
             config.write(fobj)
         return path
@@ -138,27 +137,27 @@ def controler_with_logging(lib_config, client_config):
 
 @pytest.fixture(params=[
     ('', '', {
-        'search_term': '',
+        'filter_term': '',
         'start': None,
         'end': None,
     }),
     ('', '2015-12-12 18:00 2015-12-12 19:30', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 19, 30, 0)
     }),
     ('', '2015-12-12 18:00', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
     }),
     ('', '2015-12-12', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 0, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
     }),
     ('', '13:00', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 13, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59),
     }),

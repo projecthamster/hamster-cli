@@ -62,7 +62,7 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context provider. Is triggered on all command calls."""
-    _run()
+    _run(controler)
 
 
 def _run(controler):
@@ -85,7 +85,7 @@ def search(controler, search_term, time_range):
         time_range (optional): Only fact within this timerange will be considered.
 
     """
-    _search(search_term, time_range)
+    _search(controler, search_term, time_range)
 
 
 def _search(controler, search_term, time_range):
@@ -105,7 +105,7 @@ def _search(controler, search_term, time_range):
         start, end = helpers.complete_timeframe(helpers.parse_time_range(time_range),
             controler.config)
 
-    results = controler.facts.get_all(search_term=search_term, start=start, end=end)
+    results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
 
     table, headers = _generate_facts_table(results)
     click.echo(tabulate(table, headers=headers))
@@ -126,7 +126,7 @@ def list(controler, time_range):
     Note:
         * This is effectivly just a specical version of `search`
     """
-    _search(time_range=time_range)
+    _search(controler, search_term='', time_range=time_range)
 
 
 @run.command()
@@ -293,7 +293,7 @@ def _export(controler, format, start, end):
     if format not in accepted_formats:
         message = _("Unrecocgnized export format recieved")
         controler.client_logger.info(message)
-        sys.exit(message)
+        raise click.ClickException(message)
     if not start:
         start = None
     if not end:
@@ -469,8 +469,7 @@ def _get_config(file_path):
             raise ValueError(_("Unrecognized log level value in config"))
 
         return {
-            'cwd': config.get('Client', 'cwd'),
-            'tmp_filename': config.get('Client', 'tmp_filename'),
+            'unsorted_localized': config.get('Client', 'unsorted_localized'),
             'log_console': config.getboolean('Client', 'log_console'),
             'log_file': config.getboolean('Client', 'log_file'),
             'log_filename': config.get('Client', 'log_filename'),
@@ -507,10 +506,11 @@ def _get_config(file_path):
             sys.exit(_("Unrecognized store option."))
 
         return {
-            'day_start': day_start,
-            'unsorted_localized': config.get('Backend', 'unsorted_localized'),
+            'work_dir': config.get('Backend', 'work_dir'),
             'store': store,
-            'db-path': config.get('Backend', 'db_path'),
+            'day_start': day_start,
+            'db_path': config.get('Backend', 'db_path'),
+            'tmpfile_name': config.get('Backend', 'tmpfile_name'),
             'fact_min_delta': config.get('Backend', 'fact_min_delta'),
         }
 
@@ -564,3 +564,7 @@ def _generate_facts_table(facts):
         ))
 
     return (table, header)
+
+
+if __name__ == '__main__':
+    run()
