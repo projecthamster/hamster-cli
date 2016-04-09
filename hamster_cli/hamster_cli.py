@@ -509,7 +509,7 @@ def _get_config(file_path):
             'work_dir': config.get('Backend', 'work_dir'),
             'store': store,
             'day_start': day_start,
-            'db-path': config.get('Backend', 'db_path'),
+            'db_path': config.get('Backend', 'db_path'),
             'tmpfile_name': config.get('Backend', 'tmpfile_name'),
             'fact_min_delta': config.get('Backend', 'fact_min_delta'),
         }
