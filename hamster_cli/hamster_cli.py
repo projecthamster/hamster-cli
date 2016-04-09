@@ -564,3 +564,7 @@ def _generate_facts_table(facts):
         ))
 
     return (table, header)
+
+
+if __name__ == '__main__':
+    run()
