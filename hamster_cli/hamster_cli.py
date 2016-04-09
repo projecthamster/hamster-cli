@@ -105,7 +105,7 @@ def _search(controler, search_term, time_range):
         start, end = helpers.complete_timeframe(helpers.parse_time_range(time_range),
             controler.config)
 
-    results = controler.facts.get_all(search_term=search_term, start=start, end=end)
+    results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
 
     table, headers = _generate_facts_table(results)
     click.echo(tabulate(table, headers=headers))

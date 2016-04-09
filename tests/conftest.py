@@ -137,27 +137,27 @@ def controler_with_logging(lib_config, client_config):
 
 @pytest.fixture(params=[
     ('', '', {
-        'search_term': '',
+        'filter_term': '',
         'start': None,
         'end': None,
     }),
     ('', '2015-12-12 18:00 2015-12-12 19:30', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 19, 30, 0)
     }),
     ('', '2015-12-12 18:00', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
     }),
     ('', '2015-12-12', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 0, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
     }),
     ('', '13:00', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 13, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59),
     }),
