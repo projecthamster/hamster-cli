@@ -244,7 +244,7 @@ class TestLaunchWindow(object):
 class TestGetConfig(object):
     def test_cwd(self, config_file):
         backend, client = hamster_cli._get_config(config_file())
-        assert client['cwd'] == '.'
+        assert backend['work_dir'] == '.'
 
     @pytest.mark.parametrize('log_level', ['debug'])
     def test_log_levels_valid(self, log_level, config_file):

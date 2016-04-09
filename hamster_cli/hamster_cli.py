@@ -469,7 +469,7 @@ def _get_config(file_path):
             raise ValueError(_("Unrecognized log level value in config"))
 
         return {
-            'unsorted_localized': config.get('Backend', 'unsorted_localized'),
+            'unsorted_localized': config.get('Client', 'unsorted_localized'),
             'log_console': config.getboolean('Client', 'log_console'),
             'log_file': config.getboolean('Client', 'log_file'),
             'log_filename': config.get('Client', 'log_filename'),
@@ -510,7 +510,7 @@ def _get_config(file_path):
             'store': store,
             'day_start': day_start,
             'db-path': config.get('Backend', 'db_path'),
-            'tmpfile_name': config.get('Client', 'tmpfile_name'),
+            'tmpfile_name': config.get('Backend', 'tmpfile_name'),
             'fact_min_delta': config.get('Backend', 'fact_min_delta'),
         }
 
