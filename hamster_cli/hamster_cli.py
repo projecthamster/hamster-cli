@@ -20,14 +20,10 @@ The rough idea of the original CLI was that it allows to start a Fact and then,
 at some later point one would stop the "current" activity.
 On top of that it realy then is just some listing/exporting capabilities.
 
-Note:
-    Now, for a 'fire and forget' CLI the question is to where to store the
-    "ongoing" activity if our persistend backend only wants to support complete
-    facts. This is where all the mess about allowing incomplete facts to the db
-    seems to take its origin...
-    We stick with our doctrine of only storing complete Facts and deligating
-    ongoing Facts to the client.
-    In case of this CLI we just use a pickled tmp-file and be done with it.
+The main tasks of this CLI are twofold:
+    1. Provide a structured and solid config to be handed over to the backend.
+    2. Provide a clean interface that includes some basic input validation before
+        calling upon ``hamsterlib`` to do the heavy lifting.
 
   To promote cleanness and seperation of concens we split the actual command
     invocation and its click-integration from the logic ctriggered by that
@@ -152,12 +148,6 @@ def start(controler, raw_fact, start, end):
     # between *adding* a (complete) fact and *starting* a (ongoing) fact.
     # This needs to be reflected in this command.
     _start(controler, raw_fact, start, end)
-
-    fact = controler.parse_raw_fact(raw_fact)
-    if not fact.start:
-        fact.start = start or datetime.datetime.now()
-    if not fact.end and end:
-        fact.end = end
 
 
 def _start(controler, raw_fact, start, end):
