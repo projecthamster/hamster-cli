@@ -18,8 +18,8 @@ requirements = [
     'Click',
     'tabulate',
     'hamsterlib',
-]=`=jedi=0, =`=    (*_***attrs*_*) =`=jedi=`=
-=`=jedi=0, =`=     (*_***attrs*_*) =`=jedi=`=
+]
+
 setup(
     name='hamster_cli',
     version='0.1.1',
