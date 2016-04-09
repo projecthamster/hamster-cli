@@ -1,6 +1,3 @@
-import click
-import sys
-import pickle as pickle
 import datetime
 import logging
 import os
@@ -16,9 +13,6 @@ try:
     from configparser import SafeConfigParser
 except:
     from ConfigParser import SafeConfigParser
-
-from hamsterlib import HamsterControl, Category, Activity, Fact
-from hamsterlib import helpers, reports
 
 
 """
@@ -137,7 +131,7 @@ def list(controler, time_range):
 
 @run.command()
 @click.argument('raw_fact')
-@click.argument ('start', default='')
+@click.argument('start', default='')
 @click.argument('end', default='')
 @pass_controler
 def start(controler, raw_fact, start, end):
