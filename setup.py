@@ -22,7 +22,7 @@ requirements = [
 
 setup(
     name='hamster_cli',
-    version='0.0.1',
+    version='0.1.0',
     description="A basic CLI for the hamster time tracker.",
     long_description=readme + '\n\n' + history,
     author="Eric Goller",
