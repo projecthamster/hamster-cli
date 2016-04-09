@@ -474,7 +474,7 @@ def _get_config(file_path):
             'log_console': config.getboolean('Client', 'log_console'),
             'log_file': config.getboolean('Client', 'log_file'),
             'log_filename': config.get('Client', 'log_filename'),
-            'log_level': config.get('Client', 'log_level'),
+            'log_level': log_level,
             'dbus': config.getboolean('Client', 'dbus'),
         }
 

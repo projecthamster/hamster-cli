@@ -246,7 +246,6 @@ class TestGetConfig(object):
         backend, client = hamster_cli._get_config(config_file())
         assert client['cwd'] == '.'
 
-    @pytest.mark.xfail
     @pytest.mark.parametrize('log_level', ['debug'])
     def test_log_levels_valid(self, log_level, config_file):
         backend, client = hamster_cli._get_config(
@@ -279,22 +278,14 @@ class TestGetConfig(object):
                 config_file(log_filename=''))
 
 
-@pytest.mark.xfail
 class TestGenerateTable(object):
     def test_generate_table(self, fact):
-        table, header = hamster_cli._generate_table([fact])
+        """Make sure the table contains all expected fact data."""
+        table, header = hamster_cli._generate_facts_table([fact])
         assert table[0].start == fact.start.strftime('%Y-%m-%d %H:%M')
         assert table[0].activity == fact.activity.name
 
     def test_header(self):
-        table, header = hamster_cli._generate_table([])
+        """Make sure the tables header matches our expectation."""
+        table, header = hamster_cli._generate_facts_table([])
         assert len(header) == 6
-
-
-@pytest.mark.xfail
-class TestAddFact(object):
-    def test_valid_fact(self, controler_with_logging, fact):
-        """Test that we pass along our fact to the according backend function."""
-        # [TODO] We should find a way to check that logging facilities were
-        # called.
-        assert hamster_cli._add_fact(controler_with_logging, fact)
