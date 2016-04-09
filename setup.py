@@ -16,15 +16,13 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'Click',
-]
-
-test_requirements = [
-    # TODO: put package test requirements here
+    'tabulate',
+    'hamsterlib',
 ]
 
 setup(
     name='hamster_cli',
-    version='0.0.1',
+    version='0.1.0',
     description="A basic CLI for the hamster time tracker.",
     long_description=readme + '\n\n' + history,
     author="Eric Goller",
@@ -35,7 +33,9 @@ setup(
     ],
     package_dir={'hamster_cli':
                  'hamster_cli'},
-    #include_package_data=True,
+    package_data={
+        'hamster_cli': ['config.ini'],
+    },
     install_requires=requirements,
     license="GPL3",
     zip_safe=False,
@@ -50,10 +50,4 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
-    test_suite='tests',
-    tests_require=test_requirements,
-    entry_points='''
-    [console_scripts]
-    hamsterlib-cli=hamster_cli.hamster_cli:run
-    ''',
 )
