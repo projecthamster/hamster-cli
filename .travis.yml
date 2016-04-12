@@ -4,17 +4,15 @@
 language: python
 
 env:
-  - TOXENV=py35
   - TOXENV=py34
-  - TOXENV=py33
   - TOXENV=py27
-  - TOXENV=py26
-  - TOXENV=pypy
+  - TOXENV=flake8
+  - TOXENV=isort
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox
+install: pip install -U tox coverage
 
 # command to run tests, e.g. python setup.py test
-script: tox
-
-
+script:
+        make test-all
+        codecov --token=5bdb5dae-6f85-4f90-b0b4-8f73fc65f92c
