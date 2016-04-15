@@ -598,17 +598,22 @@ def _write_config_file(file_path):
     # [FIXME]
     # This may be usefull to turn into a proper command, so users can restore to
     # factory settings easily.
+
+    def get_db_path():
+        filepath = os.path.join(str(AppDirs.user_data_dir), 'hamster_cli.db')
+        return 'sqlite:////{}'.format(filepath)
+
     config = SafeConfigParser()
 
     # Backend
     config.add_section('Backend')
     config.set('Backend', 'store', 'sqlalchemy')
     config.set('Backend', 'daystart', '00:00:00')
-    config.set('Backend', 'db_path', 'postgres://hamsterlib:foobar@localhost/hamsterlib')
+    config.set('Backend', 'db_path', get_db_path())
     config.set('Backend', 'tmpfile_name', 'test_tmp_fact.pickle')
     config.set('Backend', 'fact_min_delta', '60')
-    config.set('Backend', 'db_engine', 'sqlite')
-    config.set('Backend', 'db_uri', 'hamster_cli.db')
+    config.set('Backend', 'db_engine', '')
+    config.set('Backend', 'db_uri', '')
     config.set('Backend', 'db_user', '')
     config.set('Backend', 'db_password', '')
 
