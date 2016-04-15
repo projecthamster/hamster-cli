@@ -140,7 +140,7 @@ html_theme_options = {
     'github_banner': False,
     'travis_button': False,
     'extra_nav_links': {
-        '<img alt="Build Status" src="https://img.shields.io/codeship/d6091280-dd49-0133-2357-6e554581ddcc/master.svg">': 'https://codeship.org/elbenfreund/hamster_cli',
+        '<img alt="Build Status" src="https://img.shields.io/travis/elbenfreund/hamster_cli/master.svg">': 'https://travis-ci.org/elbenfreund/hamster_cli',
         '<img alt="Coverage Status" src="https://img.shields.io/codecov/c/github/elbenfreund/hamster_cli/master.svg">': 'https://codecov.io/github/elbenfreund/hamsster_cli?branch=master',
         '<img alt="Requirements Status" src="https://requires.io/github/elbenfreund/hamster_cli/requirements.svg?branch=master">': 'https://requires.io/github/elbenfreund/hamster_cli/requirements/?branch=master',
         '<img alt="Project Management" src="https://badge.waffle.io/elbenfreund/hamster_cli.svg?label=ready&title=Ready">': 'https://waffle.io/elbenfreund/hamster_cli',
