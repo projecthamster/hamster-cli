@@ -5,8 +5,8 @@ hamster_cli
 .. image:: https://img.shields.io/pypi/v/hamster_cli.svg
         :target: https://pypi.python.org/pypi/hamster_cli
 
-.. image:: https://img.shields.io/codeship/d6091280-dd49-0133-2357-6e554581ddcc/master.svg
-        :target: https://codeship.org/elbenfreund/hamster_cli
+.. image:: https://img.shields.io/travis/elbenfreund/hamster_cli/master.svg
+        :target: https://travis-ci.org/elbenfreund/hamster_cli
 
 .. image:: https://img.shields.io/codecov/c/github/elbenfreund/hamster_cli/master.svg
         :target: https://codecov.io/github/elbenfreund/hamster_cli
