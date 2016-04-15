@@ -38,6 +38,7 @@ def appdirs(mocker, tmpdir):
     """Provide mocked version specific user dirs using a tmpdir."""
     hamster_cli.AppDirs = mocker.MagicMock()
     hamster_cli.AppDirs.user_config_dir = tmpdir.mkdir('config').strpath
+    hamster_cli.AppDirs.user_data_dir = tmpdir.mkdir('data').strpath
     return hamster_cli.AppDirs
 
 
