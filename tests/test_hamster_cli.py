@@ -241,11 +241,6 @@ class TestLaunchWindow(object):
 
 
 class TestGetConfig(object):
-    @pytest.mark.xfail
-    def test_cwd(self, config_instance):
-        backend, client = hamster_cli._get_config(config_instance())
-        assert backend['work_dir'] == '.'
-
     @pytest.mark.parametrize('log_level', ['debug'])
     def test_log_levels_valid(self, log_level, config_instance):
         backend, client = hamster_cli._get_config(
@@ -270,12 +265,6 @@ class TestGetConfig(object):
         with pytest.raises(ValueError):
             backend, client = hamster_cli._get_config(
                 config_instance(daystart=day_start))
-
-    def test_log_filename_empty(self, config_instance):
-        """Test that a empty filename throws an error."""
-        with pytest.raises(ValueError):
-            backend, client = hamster_cli._get_config(
-                config_instance(log_filename=''))
 
 
 class TestGenerateTable(object):
