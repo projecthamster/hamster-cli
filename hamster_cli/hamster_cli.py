@@ -620,7 +620,7 @@ def _write_config_file(file_path):
     config.set('Client', 'log_filename', 'hamster_cli.log')
     config.set('Client', 'dbus', 'False')
 
-    configfile_path = os.path.basename(file_path)
+    configfile_path = os.path.dirname(file_path)
     if not os.path.lexists(configfile_path):
         os.makedirs(configfile_path)
     with open(file_path, 'w') as fobj:

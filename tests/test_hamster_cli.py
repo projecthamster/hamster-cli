@@ -11,6 +11,11 @@ from freezegun import freeze_time
 
 from hamster_cli import hamster_cli
 
+try:
+    from configparser import SafeConfigParser
+except:
+    from ConfigParser import SafeConfigParser
+
 
 class TestSearch(object):
     """Unit tests for search command."""
@@ -108,7 +113,6 @@ class TestCancel():
         with pytest.raises(ClickException):
             hamster_cli._cancel(controler_with_logging)
             out, err = capsys.readouterr()
-            print(out, err)
             assert 'Nothing tracked right now' in err
 
 
@@ -267,6 +271,26 @@ class TestGetConfig(object):
                 config_instance(daystart=day_start))
 
 
+class TestGetConfigInstance():
+    def test_no_file_present(self, appdirs, mocker):
+        """Make sure a new vanilla config is written if no config is found."""
+        mocker.patch('hamster_cli.hamster_cli._write_config_file')
+        hamster_cli._get_config_instance()
+        assert hamster_cli._write_config_file.called
+
+    def test_file_present(self, config_instance, config_file, mocker):
+        """Make sure we try parsing a found config file."""
+        result = hamster_cli._get_config_instance()
+        assert result.get('Backend', 'store') == config_instance().get('Backend', 'store')
+
+    def test_get_config_path(self, appdirs, mocker):
+        """Make sure the config target path is constructed to our expectations."""
+        mocker.patch('hamster_cli.hamster_cli._write_config_file')
+        hamster_cli._get_config_instance()
+        expectation = os.path.join(appdirs.user_config_dir, 'hamster_cli.conf')
+        assert hamster_cli._write_config_file.called_with(expectation)
+
+
 class TestGenerateTable(object):
     def test_generate_table(self, fact):
         """Make sure the table contains all expected fact data."""
@@ -278,3 +302,22 @@ class TestGenerateTable(object):
         """Make sure the tables header matches our expectation."""
         table, header = hamster_cli._generate_facts_table([])
         assert len(header) == 6
+
+
+class TestWriteConfigFile(object):
+    def test_file_is_written(request, filepath):
+        """Make sure the file is written. Content is not checked, this is ConfigParsers job."""
+        hamster_cli._write_config_file(filepath)
+        assert os.path.lexists(filepath)
+
+    def test_return_config_instance(request, filepath):
+        """Make sure we return a ``SafeConfigParser`` instance."""
+        result = hamster_cli._write_config_file(filepath)
+        assert isinstance(result, SafeConfigParser)
+
+    def test_non_existing_path(request, tmpdir, filename):
+        """Make sure that the path-parents are created ifnot present."""
+        filepath = os.path.join(tmpdir.strpath, 'foobar')
+        assert os.path.lexists(filepath) is False
+        hamster_cli._write_config_file(filepath)
+        assert os.path.lexists(filepath)

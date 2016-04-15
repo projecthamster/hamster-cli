@@ -2,6 +2,7 @@ import datetime
 import os
 import pickle as pickle
 
+import fauxfactory
 import hamsterlib
 import pytest
 from click.testing import CliRunner
@@ -19,6 +20,25 @@ except:
 register(factories.CategoryFactory)
 register(factories.ActivityFactory)
 register(factories.FactFactory)
+
+
+@pytest.fixture
+def filename():
+    return fauxfactory.gen_utf8()
+
+
+@pytest.fixture
+def filepath(tmpdir, filename):
+    """Provide a fully qualified pathame within our tmp-dir."""
+    return os.path.join(tmpdir.strpath, filename)
+
+
+@pytest.fixture
+def appdirs(mocker, tmpdir):
+    """Provide mocked version specific user dirs using a tmpdir."""
+    hamster_cli.AppDirs = mocker.MagicMock()
+    hamster_cli.AppDirs.user_config_dir = tmpdir.mkdir('config').strpath
+    return hamster_cli.AppDirs
 
 
 @pytest.fixture
@@ -102,6 +122,13 @@ def config_instance(tmpdir, faker):
             config.set('Client', 'dbus', kwargs.get('dbus', '0'))
             return config
     return generate_config
+
+
+@pytest.fixture
+def config_file(config_instance, appdirs):
+    """Provide a config file store under our fake config dir."""
+    with open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'), 'w') as fobj:
+        config_instance().write(fobj)
 
 
 @pytest.fixture
