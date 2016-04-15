@@ -15,9 +15,10 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read().replace('.. :changelog:', '')
 
 requirements = [
+    'appdirs',
     'Click',
-    'tabulate',
     'hamsterlib',
+    'tabulate',
     'six',
 ]
 
@@ -34,9 +35,6 @@ setup(
     ],
     package_dir={'hamster_cli':
                  'hamster_cli'},
-    package_data={
-        'hamster_cli': ['config.ini'],
-    },
     install_requires=requirements,
     license="GPL3",
     zip_safe=False,
