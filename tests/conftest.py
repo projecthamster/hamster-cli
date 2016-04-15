@@ -22,9 +22,10 @@ register(factories.FactFactory)
 
 
 @pytest.fixture
-def runner():
+def runner(config_file):
     """Used for integrations tests."""
     def runner(args=[]):
+        hamster_cli.CONFIGFILE_PATH = config_file()
         return CliRunner().invoke(hamster_cli.run, args)
     return runner
 
@@ -37,6 +38,12 @@ def base_config():
 
 @pytest.fixture
 def lib_config(tmpdir):
+    """
+    This is an actual config ficture, not config file.
+
+    That means this fixture represents the the result of all typechecks and
+    type conversions.
+    """
     return {
         'work_dir': tmpdir.mkdir('hamster_cli').strpath,
         'store': 'sqlalchemy',
@@ -65,35 +72,42 @@ def client_config():
 
 
 @pytest.fixture
-def config_file(tmpdir, faker):
+def config_instance(faker):
+    """
+    This fixture provides a (dynamicly generated) SafeConfigParser instance.
+    """
     def generate_config(**kwargs):
-        path = os.path.join(tmpdir.strpath, 'test_config')
-        with open(path, 'w') as fobj:
             config = SafeConfigParser()
+            # Backend
+            config.add_section('Backend')
+            config.set('Backend', 'store', kwargs.get('store', 'sqlalchemy'))
+            config.set('Backend', 'daystart', kwargs.get('daystart', '00:00:00'))
+            config.set('Backend', 'db_path', kwargs.get('db_path', 'sqlite:////:memory:'))
+            config.set('Backend', 'tmpfile_name', kwargs.get('tmpfile_name', 'test.pickle'))
+            config.set('Backend', 'fact_min_delta', kwargs.get('fact_min_delta', '60'))
+            config.set('Backend', 'db_engine', kwargs.get('db_engine', 'sqlite'))
+            config.set('Backend', 'db_uri', kwargs.get('db_uri', 'hamster_cli.db'))
+            config.set('Backend', 'db_user', kwargs.get('db_user', '')),
+            config.set('Backend', 'db_password', kwargs.get('db_password', ''))
 
+            # Client
             config.add_section('Client')
-            config.set('Client', 'cwd', kwargs.get('cwd', '.'))
-            config.set('Client', 'tmp_filename', kwargs.get('tmp_filename',
-                'test_tmp_fact.pickle'))
+            config.set('Client', 'unsorted_localized', kwargs.get(
+                'unsorted_localized', 'Unsorted'))
             config.set('Client', 'log_level', kwargs.get('log_level', 'debug'))
             config.set('Client', 'log_console', kwargs.get('log_console', '0'))
             config.set('Client', 'log_file', kwargs.get('log_file', '0'))
-            config.set('Client', 'log_filename', kwargs.get('log_filename',
-                faker.file_name()))
+            config.set('Client', 'log_filename', kwargs.get('log_filename', faker.file_name()))
             config.set('Client', 'dbus', kwargs.get('dbus', '0'))
-
-            config.add_section('Backend')
-            config.set('Backend', 'unsorted_localized', kwargs.get(
-                'unsorted_localized', 'Unsorted'))
-            config.set('Backend', 'store', kwargs.get('store', 'sqlalchemy'))
-            config.set('Backend', 'daystart', kwargs.get('daystart',
-                '00:00:00'))
-            config.set('Backend', 'db_path', kwargs.get('db_path',
-                'postgres://hamsterlib:foobar@localhost/hamsterlib'))
-            config.set('Backend', 'fact_min_delta', kwargs.get('fact_min_delta', '60'))
-            config.write(fobj)
-        return path
+            return config
     return generate_config
+
+
+#@pytest.fixture
+#def config_file(config_instance):
+#    """Provide a config file stored in its default location."""
+#    with open(None, 'w') as fobj:
+#        config_instance.write(fobj)
 
 
 @pytest.fixture
@@ -138,27 +152,27 @@ def controler_with_logging(lib_config, client_config):
 
 @pytest.fixture(params=[
     ('', '', {
-        'search_term': '',
+        'filter_term': '',
         'start': None,
         'end': None,
     }),
     ('', '2015-12-12 18:00 2015-12-12 19:30', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 19, 30, 0)
     }),
     ('', '2015-12-12 18:00', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
     }),
     ('', '2015-12-12', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 0, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59)
     }),
     ('', '13:00', {
-        'search_term': '',
+        'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 13, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 23, 59, 59),
     }),
