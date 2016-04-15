@@ -11,6 +11,11 @@ from freezegun import freeze_time
 
 from hamster_cli import hamster_cli
 
+try:
+    from configparser import SafeConfigParser
+except:
+    from ConfigParser import SafeConfigParser
+
 
 class TestSearch(object):
     """Unit tests for search command."""
@@ -108,7 +113,6 @@ class TestCancel():
         with pytest.raises(ClickException):
             hamster_cli._cancel(controler_with_logging)
             out, err = capsys.readouterr()
-            print(out, err)
             assert 'Nothing tracked right now' in err
 
 
@@ -118,9 +122,8 @@ class TestExport():
     def test_invalid_format(self, controler_with_logging, format, mocker):
         """Make sure that passing an invalid format exits prematurely."""
         controler = controler_with_logging
-        hamster_cli.sys.exit = mocker.MagicMock()
-        hamster_cli._export(controler, format, None, None)
-        assert hamster_cli.sys.exit.called
+        with pytest.raises(ClickException):
+            hamster_cli._export(controler, format, None, None)
 
     def test_valid_format(self, controler, controler_with_logging, tmpdir, mocker):
         """Make sure that a valid format returns the apropiate writer class."""
@@ -242,40 +245,50 @@ class TestLaunchWindow(object):
 
 
 class TestGetConfig(object):
-    def test_cwd(self, config_file):
-        backend, client = hamster_cli._get_config(config_file())
-        assert client['cwd'] == '.'
-
     @pytest.mark.parametrize('log_level', ['debug'])
-    def test_log_levels_valid(self, log_level, config_file):
+    def test_log_levels_valid(self, log_level, config_instance):
         backend, client = hamster_cli._get_config(
-            config_file(log_level=log_level))
+            config_instance(log_level=log_level))
         assert client['log_level'] == 10
 
     @pytest.mark.parametrize('log_level', ['foobar'])
-    def test_log_levels_invalid(self, log_level, config_file):
+    def test_log_levels_invalid(self, log_level, config_instance):
         with pytest.raises(ValueError):
             backend, client = hamster_cli._get_config(
-                config_file(log_level=log_level))
+                config_instance(log_level=log_level))
 
     @pytest.mark.parametrize('day_start', ['05:00:00'])
-    def test_daystart_valid(self, config_file, day_start):
-        backend, client = hamster_cli._get_config(config_file(
+    def test_daystart_valid(self, config_instance, day_start):
+        backend, client = hamster_cli._get_config(config_instance(
             daystart=day_start))
         assert backend['day_start'] == datetime.datetime.strptime(
             '05:00:00', '%H:%M:%S').time()
 
     @pytest.mark.parametrize('day_start', ['foobar'])
-    def test_daystart_invalid(self, config_file, day_start):
+    def test_daystart_invalid(self, config_instance, day_start):
         with pytest.raises(ValueError):
             backend, client = hamster_cli._get_config(
-                config_file(daystart=day_start))
+                config_instance(daystart=day_start))
 
-    def test_log_filename_empty(self, config_file):
-        """Test that a empty filename throws an error."""
-        with pytest.raises(ValueError):
-            backend, client = hamster_cli._get_config(
-                config_file(log_filename=''))
+
+class TestGetConfigInstance():
+    def test_no_file_present(self, appdirs, mocker):
+        """Make sure a new vanilla config is written if no config is found."""
+        mocker.patch('hamster_cli.hamster_cli._write_config_file')
+        hamster_cli._get_config_instance()
+        assert hamster_cli._write_config_file.called
+
+    def test_file_present(self, config_instance, config_file, mocker):
+        """Make sure we try parsing a found config file."""
+        result = hamster_cli._get_config_instance()
+        assert result.get('Backend', 'store') == config_instance().get('Backend', 'store')
+
+    def test_get_config_path(self, appdirs, mocker):
+        """Make sure the config target path is constructed to our expectations."""
+        mocker.patch('hamster_cli.hamster_cli._write_config_file')
+        hamster_cli._get_config_instance()
+        expectation = os.path.join(appdirs.user_config_dir, 'hamster_cli.conf')
+        assert hamster_cli._write_config_file.called_with(expectation)
 
 
 class TestGenerateTable(object):
@@ -289,3 +302,22 @@ class TestGenerateTable(object):
         """Make sure the tables header matches our expectation."""
         table, header = hamster_cli._generate_facts_table([])
         assert len(header) == 6
+
+
+class TestWriteConfigFile(object):
+    def test_file_is_written(request, filepath):
+        """Make sure the file is written. Content is not checked, this is ConfigParsers job."""
+        hamster_cli._write_config_file(filepath)
+        assert os.path.lexists(filepath)
+
+    def test_return_config_instance(request, filepath):
+        """Make sure we return a ``SafeConfigParser`` instance."""
+        result = hamster_cli._write_config_file(filepath)
+        assert isinstance(result, SafeConfigParser)
+
+    def test_non_existing_path(request, tmpdir, filename):
+        """Make sure that the path-parents are created ifnot present."""
+        filepath = os.path.join(tmpdir.strpath, 'foobar')
+        assert os.path.lexists(filepath) is False
+        hamster_cli._write_config_file(filepath)
+        assert os.path.lexists(filepath)
