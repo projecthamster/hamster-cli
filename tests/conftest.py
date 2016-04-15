@@ -55,10 +55,9 @@ def appdirs(mocker, tmpdir):
 
 
 @pytest.fixture
-def runner(config_file):
+def runner(appdirs):
     """Used for integrations tests."""
     def runner(args=[]):
-        hamster_cli.CONFIGFILE_PATH = config_file()
         return CliRunner().invoke(hamster_cli.run, args)
     return runner
 
