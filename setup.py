@@ -41,7 +41,7 @@ setup(
     keywords='hamster_cli',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
+        'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
