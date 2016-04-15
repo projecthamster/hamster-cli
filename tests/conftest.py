@@ -45,17 +45,17 @@ def lib_config(tmpdir):
     type conversions.
     """
     return {
-        'work_dir': tmpdir.mkdir('hamster_cli').strpath,
+        'work_dir': tmpdir.strpath,
         'store': 'sqlalchemy',
         'day_start': datetime.time(hour=0, minute=0, second=0),
         'db_path': 'sqlite:///:memory:',
-        'tmpfile_name': 'test_tmp_fact.pickle',
+        'tmpfile_name': 'test.pickle',
         'fact_min_delta': 60,
     }
 
 
 @pytest.fixture
-def client_config():
+def client_config(tmpdir):
     """
     This is an actual config ficture, not config file.
 
@@ -63,16 +63,17 @@ def client_config():
     type conversions.
     """
     return {
+        'work_dir': tmpdir.strpath,
+        'unsorted_localized': 'Unsorted',
         'log_level': 10,
         'log_console': False,
-        'log_file': False,
         'log_filename': False,
         'dbus': False,
     }
 
 
 @pytest.fixture
-def config_instance(faker):
+def config_instance(tmpdir, faker):
     """
     This fixture provides a (dynamicly generated) SafeConfigParser instance.
     """
@@ -92,22 +93,15 @@ def config_instance(faker):
 
             # Client
             config.add_section('Client')
+            config.set('Client', 'work_dir', kwargs.get('work_dir', tmpdir.strpath))
             config.set('Client', 'unsorted_localized', kwargs.get(
                 'unsorted_localized', 'Unsorted'))
             config.set('Client', 'log_level', kwargs.get('log_level', 'debug'))
             config.set('Client', 'log_console', kwargs.get('log_console', '0'))
-            config.set('Client', 'log_file', kwargs.get('log_file', '0'))
             config.set('Client', 'log_filename', kwargs.get('log_filename', faker.file_name()))
             config.set('Client', 'dbus', kwargs.get('dbus', '0'))
             return config
     return generate_config
-
-
-#@pytest.fixture
-#def config_file(config_instance):
-#    """Provide a config file stored in its default location."""
-#    with open(None, 'w') as fobj:
-#        config_instance.write(fobj)
 
 
 @pytest.fixture
@@ -128,9 +122,9 @@ def controler(lib_config, client_config):
     controler = hamsterlib.HamsterControl(lib_config)
     controler.client_config = client_config
     yield controler
-    if os.path.isfile(os.path.join(lib_config['work_dir'],
+    if os.path.isfile(os.path.join(client_config['work_dir'],
             lib_config['tmpfile_name'])):
-        os.remove(os.path.join(lib_config['work_dir'],
+        os.remove(os.path.join(client_config['work_dir'],
             lib_config['tmpfile_name']))
     controler.store.cleanup()
 
@@ -143,9 +137,9 @@ def controler_with_logging(lib_config, client_config):
     # We souldn't shortcut like this!
     hamster_cli._setup_logging(controler)
     yield controler
-    if os.path.isfile(os.path.join(lib_config['work_dir'],
+    if os.path.isfile(os.path.join(client_config['work_dir'],
             lib_config['tmpfile_name'])):
-        os.remove(os.path.join(lib_config['work_dir'],
+        os.remove(os.path.join(client_config['work_dir'],
             lib_config['tmpfile_name']))
     controler.store.cleanup()
 
