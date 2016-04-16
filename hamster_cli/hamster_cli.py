@@ -11,9 +11,9 @@ from hamsterlib import Fact, HamsterControl, helpers, reports
 from tabulate import tabulate
 
 try:
-    from configparser import SafeConfigParser
+    from configparser import SafeConfigParser, NoOptionError
 except:
-    from ConfigParser import SafeConfigParser
+    from ConfigParser import SafeConfigParser, NoOptionError
 
 
 """
@@ -457,7 +457,7 @@ def _get_config(config_instance):
     # Once we got proper defaults up and running, this should be cleaner.
     try:
         work_dir = config_instance.get('Client', 'work_dir')
-    except KeyError:
+    except NoOptionError:
         work_dir = None
 
     def get_client_config(config):
