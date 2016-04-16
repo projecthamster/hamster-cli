@@ -39,6 +39,8 @@ def appdirs(mocker, tmpdir):
     hamster_cli.AppDirs = mocker.MagicMock()
     hamster_cli.AppDirs.user_config_dir = tmpdir.mkdir('config').strpath
     hamster_cli.AppDirs.user_data_dir = tmpdir.mkdir('data').strpath
+    hamster_cli.AppDirs.user_cache_dir = tmpdir.mkdir('cache').strpath
+    hamster_cli.AppDirs.user_log_dir = tmpdir.mkdir('log').strpath
     return hamster_cli.AppDirs
 
 
