@@ -88,7 +88,7 @@ def client_config(tmpdir):
         'unsorted_localized': 'Unsorted',
         'log_level': 10,
         'log_console': False,
-        'log_filename': False,
+        'logfile_path': False,
         'dbus': False,
     }
 
