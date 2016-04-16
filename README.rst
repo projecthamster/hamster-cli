@@ -27,17 +27,33 @@ hamster_cli
 
 A basic CLI for the hamster time tracker.
 
-* Free software: GPL3
-* Documentation: https://hamster_cli.readthedocs.org.
+News (2016-04-16)
+-----------------
+Version 0.11.0 has been release. This is a major step forward as our previous release was rushed and
+turned out to be not too usable at all. This release Privides a solid and robust way to handle user
+configs as well as providing a default config setup.
+We further increased our test coverage and are well above 90% by now. Including some basic integration
+tests.
+For more details, see the changelog.
+
+Have fun tinkering, Eric.
 
 Features
 --------
+* High test coverage.
+* Well documented.
+* Lightweight.
+* Free software: GPL3
+* Uses ``hamsterlib``, which supports a wide array of databases.
+* Few dependencies
+* Active development.
 
-* TODO
+Resourcecs
+-----------
+* Documentation: https://hamster_cli.readthedocs.org.
 
 Credits
 ---------
-
 Tools used in rendering this package:
 
 *  Cookiecutter_
