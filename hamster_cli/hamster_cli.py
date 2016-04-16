@@ -545,7 +545,7 @@ def _get_config(config_instance):
             return config.get('Backend', 'tmpfile_name')
 
         def get_fact_min_delta():
-            return config.get('Backend', 'fact_min_delta'),
+            return config.get('Backend', 'fact_min_delta')
 
         def get_work_dir():
             return work_dir or AppDirs.user_data_dir
