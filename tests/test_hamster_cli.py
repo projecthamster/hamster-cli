@@ -225,9 +225,8 @@ class TestSetupLogging():
         assert controler.lib_logger.handlers == []
         assert controler.client_logger.handlers == []
 
-    def test_setup_logging_log_file_True(self, controler):
-        controler.client_config['log_file'] = True
-        controler.client_config['log_filename'] = 'foobar.log'
+    def test_setup_logging_log_file_True(self, controler, appdirs):
+        controler.client_config['logfile_path'] = os.path.join(appdirs.user_log_dir, 'foobar.log')
         hamster_cli._setup_logging(controler)
         assert isinstance(controler.lib_logger.handlers[0],
             logging.FileHandler)
