@@ -320,3 +320,103 @@ class TestWriteConfigFile(object):
         assert os.path.lexists(filepath) is False
         hamster_cli._write_config_file(filepath)
         assert os.path.lexists(filepath)
+
+
+class TestHamsterAppDirs(object):
+    """Make sure that our custom AppDirs works as intended."""
+
+    def test_user_data_dir_returns_directoy(self, tmpdir, mocker):
+        """Make sure method returns directory."""
+        path = tmpdir.strpath
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_data_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        assert appdir.user_data_dir == path
+
+    @pytest.mark.parametrize('create', [True, False])
+    def test_user_data_dir_creates_file(self, tmpdir, mocker, create, faker):
+        """Make sure that path creation depends on ``create`` attribute."""
+        path = os.path.join(tmpdir.strpath, '{}/'.format(faker.word()))
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_data_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        appdir.create = create
+        assert os.path.exists(appdir.user_data_dir) is create
+
+    def test_site_data_dir_returns_directoy(self, tmpdir, mocker):
+        """Make sure method returns directory."""
+        path = tmpdir.strpath
+        mocker.patch('hamster_cli.hamster_cli.appdirs.site_data_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        assert appdir.site_data_dir == path
+
+    @pytest.mark.parametrize('create', [True, False])
+    def test_site_data_dir_creates_file(self, tmpdir, mocker, create, faker):
+        """Make sure that path creation depends on ``create`` attribute."""
+        path = os.path.join(tmpdir.strpath, '{}/'.format(faker.word()))
+        mocker.patch('hamster_cli.hamster_cli.appdirs.site_data_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        appdir.create = create
+        assert os.path.exists(appdir.site_data_dir) is create
+
+    def test_user_config_dir_returns_directoy(self, tmpdir, mocker):
+        """Make sure method returns directory."""
+        path = tmpdir.strpath
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_config_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        assert appdir.user_config_dir == path
+
+    @pytest.mark.parametrize('create', [True, False])
+    def test_user_config_dir_creates_file(self, tmpdir, mocker, create, faker):
+        """Make sure that path creation depends on ``create`` attribute."""
+        path = os.path.join(tmpdir.strpath, '{}/'.format(faker.word()))
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_config_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        appdir.create = create
+        assert os.path.exists(appdir.user_config_dir) is create
+
+    def test_site_config_dir_returns_directoy(self, tmpdir, mocker):
+        """Make sure method returns directory."""
+        path = tmpdir.strpath
+        mocker.patch('hamster_cli.hamster_cli.appdirs.site_config_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        assert appdir.site_config_dir == path
+
+    @pytest.mark.parametrize('create', [True, False])
+    def test_site_config_dir_creates_file(self, tmpdir, mocker, create, faker):
+        """Make sure that path creation depends on ``create`` attribute."""
+        path = os.path.join(tmpdir.strpath, '{}/'.format(faker.word()))
+        mocker.patch('hamster_cli.hamster_cli.appdirs.site_config_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        appdir.create = create
+        assert os.path.exists(appdir.site_config_dir) is create
+
+    def test_user_cache_dir_returns_directoy(self, tmpdir, mocker):
+        """Make sure method returns directory."""
+        path = tmpdir.strpath
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_cache_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        assert appdir.user_cache_dir == path
+
+    @pytest.mark.parametrize('create', [True, False])
+    def test_user_cache_dir_creates_file(self, tmpdir, mocker, create, faker):
+        """Make sure that path creation depends on ``create`` attribute."""
+        path = os.path.join(tmpdir.strpath, '{}/'.format(faker.word()))
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_cache_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        appdir.create = create
+        assert os.path.exists(appdir.user_cache_dir) is create
+
+    def test_user_log_dir_returns_directoy(self, tmpdir, mocker):
+        """Make sure method returns directory."""
+        path = tmpdir.strpath
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_log_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        assert appdir.user_log_dir == path
+
+    @pytest.mark.parametrize('create', [True, False])
+    def test_user_log_dir_creates_file(self, tmpdir, mocker, create, faker):
+        """Make sure that path creation depends on ``create`` attribute."""
+        path = os.path.join(tmpdir.strpath, '{}/'.format(faker.word()))
+        mocker.patch('hamster_cli.hamster_cli.appdirs.user_log_dir', return_value=path)
+        appdir = hamster_cli.HamsterAppDirs('hamster_cli')
+        appdir.create = create
+        assert os.path.exists(appdir.user_log_dir) is create

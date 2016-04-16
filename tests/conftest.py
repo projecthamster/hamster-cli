@@ -36,11 +36,21 @@ def filepath(tmpdir, filename):
 @pytest.fixture
 def appdirs(mocker, tmpdir):
     """Provide mocked version specific user dirs using a tmpdir."""
+
+    def ensure_directory_exists(directory):
+        if not os.path.lexists(directory):
+            os.makedirs(directory)
+        return directory
+
     hamster_cli.AppDirs = mocker.MagicMock()
-    hamster_cli.AppDirs.user_config_dir = tmpdir.mkdir('config').strpath
-    hamster_cli.AppDirs.user_data_dir = tmpdir.mkdir('data').strpath
-    hamster_cli.AppDirs.user_cache_dir = tmpdir.mkdir('cache').strpath
-    hamster_cli.AppDirs.user_log_dir = tmpdir.mkdir('log').strpath
+    hamster_cli.AppDirs.user_config_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('config').strpath, 'hamster_cli/'))
+    hamster_cli.AppDirs.user_data_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('data').strpath, 'hamster_cli/'))
+    hamster_cli.AppDirs.user_cache_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('cache').strpath, 'hamster_cli/'))
+    hamster_cli.AppDirs.user_log_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('log').strpath, 'hamster_cli/'))
     return hamster_cli.AppDirs
 
 
