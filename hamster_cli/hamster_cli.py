@@ -259,7 +259,14 @@ def _start(controler, raw_fact, start, end):
     # helper instead. If behaviour similar to the legacy hamster-cli is desired,
     # all that seems needed is to change ``day_start`` to '00:00'.
 
-    # The following is needed becauses end may be ``None``.
+    # The following is needed becauses start and end may be ``None``.
+    if not fact.start:
+        start_date = None
+        start_time = None
+    else:
+        start_date = fact.start.date()
+        start_time = fact.start.time()
+
     if not fact.end:
         end_date = None
         end_time = None
@@ -267,8 +274,7 @@ def _start(controler, raw_fact, start, end):
         end_date = fact.end.date()
         end_time = fact.end.time()
 
-    timeframe = helpers.TimeFrame(fact.start.date(), fact.start.time(),
-        end_date, end_time, None)
+    timeframe = helpers.TimeFrame(start_date, start_time, end_date, end_time, None)
     fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
 
     if tmp_fact:
