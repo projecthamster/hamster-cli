@@ -24,7 +24,7 @@ requirements = [
 
 setup(
     name='hamster_cli',
-    version='0.1.2',
+    version='0.11.0',
     description="A basic CLI for the hamster time tracker.",
     long_description=readme + '\n\n' + history,
     author="Eric Goller",
