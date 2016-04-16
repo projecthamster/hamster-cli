@@ -542,7 +542,7 @@ def _get_config(config_instance):
             return config.get('Backend', 'db_path')
 
         def get_tmpfile_name():
-            return config.get('Backend', 'tmpfile_name'),
+            return config.get('Backend', 'tmpfile_name')
 
         def get_fact_min_delta():
             return config.get('Backend', 'fact_min_delta'),
