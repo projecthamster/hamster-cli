@@ -422,8 +422,8 @@ def _setup_logging(controler):
         lib_logger.addHandler(console_handler)
         client_logger.addHandler(console_handler)
 
-    if controler.client_config['log_filename']:
-        filename = controler.client_config['log_filename']
+    if controler.client_config['logfile_path']:
+        filename = controler.client_config['logfile_path']
         file_handler = logging.FileHandler(filename, encoding='utf-8')
         file_handler.setFormatter(formatter)
         lib_logger.addHandler(file_handler)
