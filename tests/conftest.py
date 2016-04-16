@@ -36,17 +36,28 @@ def filepath(tmpdir, filename):
 @pytest.fixture
 def appdirs(mocker, tmpdir):
     """Provide mocked version specific user dirs using a tmpdir."""
+
+    def ensure_directory_exists(directory):
+        if not os.path.lexists(directory):
+            os.makedirs(directory)
+        return directory
+
     hamster_cli.AppDirs = mocker.MagicMock()
-    hamster_cli.AppDirs.user_config_dir = tmpdir.mkdir('config').strpath
-    hamster_cli.AppDirs.user_data_dir = tmpdir.mkdir('data').strpath
+    hamster_cli.AppDirs.user_config_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('config').strpath, 'hamster_cli/'))
+    hamster_cli.AppDirs.user_data_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('data').strpath, 'hamster_cli/'))
+    hamster_cli.AppDirs.user_cache_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('cache').strpath, 'hamster_cli/'))
+    hamster_cli.AppDirs.user_log_dir = ensure_directory_exists(os.path.join(
+        tmpdir.mkdir('log').strpath, 'hamster_cli/'))
     return hamster_cli.AppDirs
 
 
 @pytest.fixture
-def runner(config_file):
+def runner(appdirs):
     """Used for integrations tests."""
     def runner(args=[]):
-        hamster_cli.CONFIGFILE_PATH = config_file()
         return CliRunner().invoke(hamster_cli.run, args)
     return runner
 
@@ -88,7 +99,7 @@ def client_config(tmpdir):
         'unsorted_localized': 'Unsorted',
         'log_level': 10,
         'log_console': False,
-        'log_filename': False,
+        'logfile_path': False,
         'dbus': False,
     }
 

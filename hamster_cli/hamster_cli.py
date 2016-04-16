@@ -11,9 +11,9 @@ from hamsterlib import Fact, HamsterControl, helpers, reports
 from tabulate import tabulate
 
 try:
-    from configparser import SafeConfigParser
+    from configparser import SafeConfigParser, NoOptionError
 except:
-    from ConfigParser import SafeConfigParser
+    from ConfigParser import SafeConfigParser, NoOptionError
 
 
 """
@@ -46,7 +46,75 @@ The main tasks of this CLI are twofold:
 """
 
 
-AppDirs = appdirs.AppDirs('hamster_cli')
+class HamsterAppDirs(appdirs.AppDirs):
+    """Custom class that ensure appdirs exist."""
+    def __init__(self, *args, **kwargs):
+        """Add create flag value to instance."""
+        super(HamsterAppDirs, self).__init__(*args, **kwargs)
+        self.create = True
+
+    @property
+    def user_data_dir(self):
+        """Return ``user_data_dir``."""
+        directory = appdirs.user_data_dir(self.appname, self.appauthor,
+                             version=self.version, roaming=self.roaming)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def site_data_dir(self):
+        """Return ``site_data_dir``."""
+        directory = appdirs.site_data_dir(self.appname, self.appauthor,
+                             version=self.version, multipath=self.multipath)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def user_config_dir(self):
+        """Return ``user_config_dir``."""
+        directory = appdirs.user_config_dir(self.appname, self.appauthor,
+                               version=self.version, roaming=self.roaming)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def site_config_dir(self):
+        """Return ``site_config_dir``."""
+        directory = appdirs.site_config_dir(self.appname, self.appauthor,
+                             version=self.version, multipath=self.multipath)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def user_cache_dir(self):
+        """Return ``user_cache_dir``."""
+        directory = appdirs.user_cache_dir(self.appname, self.appauthor,
+                              version=self.version)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def user_log_dir(self):
+        """Return ``user_log_dir``."""
+        directory = appdirs.user_log_dir(self.appname, self.appauthor,
+                            version=self.version)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    def _ensure_directory_exists(self, directory):
+        """Ensure that the passed path exists."""
+        if not os.path.lexists(directory):
+            os.makedirs(directory)
+        return directory
+
+
+AppDirs = HamsterAppDirs('hamster_cli')
 
 
 class Controler(HamsterControl):
@@ -191,7 +259,14 @@ def _start(controler, raw_fact, start, end):
     # helper instead. If behaviour similar to the legacy hamster-cli is desired,
     # all that seems needed is to change ``day_start`` to '00:00'.
 
-    # The following is needed becauses end may be ``None``.
+    # The following is needed becauses start and end may be ``None``.
+    if not fact.start:
+        start_date = None
+        start_time = None
+    else:
+        start_date = fact.start.date()
+        start_time = fact.start.time()
+
     if not fact.end:
         end_date = None
         end_time = None
@@ -199,8 +274,7 @@ def _start(controler, raw_fact, start, end):
         end_date = fact.end.date()
         end_time = fact.end.time()
 
-    timeframe = helpers.TimeFrame(fact.start.date(), fact.start.time(),
-        end_date, end_time, None)
+    timeframe = helpers.TimeFrame(start_date, start_time, end_date, end_time, None)
     fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
 
     if tmp_fact:
@@ -422,8 +496,8 @@ def _setup_logging(controler):
         lib_logger.addHandler(console_handler)
         client_logger.addHandler(console_handler)
 
-    if controler.client_config['log_filename']:
-        filename = controler.client_config['log_filename']
+    if controler.client_config['logfile_path']:
+        filename = controler.client_config['logfile_path']
         file_handler = logging.FileHandler(filename, encoding='utf-8')
         file_handler.setFormatter(formatter)
         lib_logger.addHandler(file_handler)
@@ -457,7 +531,7 @@ def _get_config(config_instance):
     # Once we got proper defaults up and running, this should be cleaner.
     try:
         work_dir = config_instance.get('Client', 'work_dir')
-    except KeyError:
+    except NoOptionError:
         work_dir = None
 
     def get_client_config(config):
@@ -542,10 +616,10 @@ def _get_config(config_instance):
             return config.get('Backend', 'db_path')
 
         def get_tmpfile_name():
-            return config.get('Backend', 'tmpfile_name'),
+            return config.get('Backend', 'tmpfile_name')
 
         def get_fact_min_delta():
-            return config.get('Backend', 'fact_min_delta'),
+            return config.get('Backend', 'fact_min_delta')
 
         def get_work_dir():
             return work_dir or AppDirs.user_data_dir
