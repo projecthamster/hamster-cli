@@ -1,18 +1,19 @@
 import datetime
 import logging
 import os
-import sys
 from collections import namedtuple
 from gettext import gettext as _
 
+import appdirs
 import click
+import hamsterlib
 from hamsterlib import Fact, HamsterControl, helpers, reports
 from tabulate import tabulate
 
 try:
-    from configparser import SafeConfigParser
+    from configparser import SafeConfigParser, NoOptionError
 except:
-    from ConfigParser import SafeConfigParser
+    from ConfigParser import SafeConfigParser, NoOptionError
 
 
 """
@@ -44,13 +45,82 @@ The main tasks of this CLI are twofold:
         user interaction shall get through as exceptions.
 """
 
-CONFIGFILE_PATH = './config.ini'
+
+class HamsterAppDirs(appdirs.AppDirs):
+    """Custom class that ensure appdirs exist."""
+    def __init__(self, *args, **kwargs):
+        """Add create flag value to instance."""
+        super(HamsterAppDirs, self).__init__(*args, **kwargs)
+        self.create = True
+
+    @property
+    def user_data_dir(self):
+        """Return ``user_data_dir``."""
+        directory = appdirs.user_data_dir(self.appname, self.appauthor,
+                             version=self.version, roaming=self.roaming)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def site_data_dir(self):
+        """Return ``site_data_dir``."""
+        directory = appdirs.site_data_dir(self.appname, self.appauthor,
+                             version=self.version, multipath=self.multipath)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def user_config_dir(self):
+        """Return ``user_config_dir``."""
+        directory = appdirs.user_config_dir(self.appname, self.appauthor,
+                               version=self.version, roaming=self.roaming)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def site_config_dir(self):
+        """Return ``site_config_dir``."""
+        directory = appdirs.site_config_dir(self.appname, self.appauthor,
+                             version=self.version, multipath=self.multipath)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def user_cache_dir(self):
+        """Return ``user_cache_dir``."""
+        directory = appdirs.user_cache_dir(self.appname, self.appauthor,
+                              version=self.version)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    @property
+    def user_log_dir(self):
+        """Return ``user_log_dir``."""
+        directory = appdirs.user_log_dir(self.appname, self.appauthor,
+                            version=self.version)
+        if self.create:
+            self._ensure_directory_exists(directory)
+        return directory
+
+    def _ensure_directory_exists(self, directory):
+        """Ensure that the passed path exists."""
+        if not os.path.lexists(directory):
+            os.makedirs(directory)
+        return directory
+
+
+AppDirs = HamsterAppDirs('hamster_cli')
 
 
 class Controler(HamsterControl):
     def __init__(self):
         """Instantiate controler instance and adding client_config to it."""
-        lib_config, client_config = _get_config(CONFIGFILE_PATH)
+        lib_config, client_config = _get_config(_get_config_instance())
         super(Controler, self).__init__(lib_config)
         self.client_config = client_config
 
@@ -62,7 +132,7 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context provider. Is triggered on all command calls."""
-    _run()
+    _run(controler)
 
 
 def _run(controler):
@@ -85,7 +155,7 @@ def search(controler, search_term, time_range):
         time_range (optional): Only fact within this timerange will be considered.
 
     """
-    _search(search_term, time_range)
+    _search(controler, search_term, time_range)
 
 
 def _search(controler, search_term, time_range):
@@ -105,7 +175,7 @@ def _search(controler, search_term, time_range):
         start, end = helpers.complete_timeframe(helpers.parse_time_range(time_range),
             controler.config)
 
-    results = controler.facts.get_all(search_term=search_term, start=start, end=end)
+    results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
 
     table, headers = _generate_facts_table(results)
     click.echo(tabulate(table, headers=headers))
@@ -126,7 +196,7 @@ def list(controler, time_range):
     Note:
         * This is effectivly just a specical version of `search`
     """
-    _search(time_range=time_range)
+    _search(controler, search_term='', time_range=time_range)
 
 
 @run.command()
@@ -189,7 +259,14 @@ def _start(controler, raw_fact, start, end):
     # helper instead. If behaviour similar to the legacy hamster-cli is desired,
     # all that seems needed is to change ``day_start`` to '00:00'.
 
-    # The following is needed becauses end may be ``None``.
+    # The following is needed becauses start and end may be ``None``.
+    if not fact.start:
+        start_date = None
+        start_time = None
+    else:
+        start_date = fact.start.date()
+        start_time = fact.start.time()
+
     if not fact.end:
         end_date = None
         end_time = None
@@ -197,8 +274,7 @@ def _start(controler, raw_fact, start, end):
         end_date = fact.end.date()
         end_time = fact.end.time()
 
-    timeframe = helpers.TimeFrame(fact.start.date(), fact.start.time(),
-        end_date, end_time, None)
+    timeframe = helpers.TimeFrame(start_date, start_time, end_date, end_time, None)
     fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
 
     if tmp_fact:
@@ -293,7 +369,7 @@ def _export(controler, format, start, end):
     if format not in accepted_formats:
         message = _("Unrecocgnized export format recieved")
         controler.client_logger.info(message)
-        sys.exit(message)
+        raise click.ClickException(message)
     if not start:
         start = None
     if not end:
@@ -420,8 +496,8 @@ def _setup_logging(controler):
         lib_logger.addHandler(console_handler)
         client_logger.addHandler(console_handler)
 
-    if controler.client_config['log_filename']:
-        filename = controler.client_config['log_filename']
+    if controler.client_config['logfile_path']:
+        filename = controler.client_config['logfile_path']
         file_handler = logging.FileHandler(filename, encoding='utf-8')
         file_handler.setFormatter(formatter)
         lib_logger.addHandler(file_handler)
@@ -433,9 +509,14 @@ def _launch_window(window_type):
     raise NotImplementedError
 
 
-def _get_config(file_path):
+def _get_config(config_instance):
     """
     Rertrieve config dictionaries for backend and client setup.
+
+    Raises:
+        ValueError: Raised if we fail to process the user supplied config information.
+            Please note that there will be no log entry as at this point, logging has not
+            been set up yet.
 
     Returns:
         tuple: ``backend_config, client_config)`` tuple, where each element is a
@@ -445,80 +526,186 @@ def _get_config(file_path):
     # We propably can make better use of configparsers default config optionn,
     # but for now this will do.
 
+    # Check if config overrides our default path logic.
+    # [FIXME]
+    # Once we got proper defaults up and running, this should be cleaner.
+    try:
+        work_dir = config_instance.get('Client', 'work_dir')
+    except NoOptionError:
+        work_dir = None
+
     def get_client_config(config):
         """
         Make sure config values are of proper type and provide basic
         sanity checks (e.g. make sure we got a filename if we want to log to
         file and such..).
-        """
-        log_filename = config.get('Client', 'log_filename')
-        if not log_filename:
-            raise ValueError(_(
-                "You specified logging to a file, but there seems to"
-                " be no actual filename provided!"
-            ))
 
-        LOG_LEVELS = {
-            'info': logging.INFO,
-            'debug': logging.DEBUG,
-            'warning': logging.WARNING,
-            'error': logging.ERROR,
-        }
-        log_level = LOG_LEVELS.get(config.get('Client', 'log_level').lower())
-        if not log_level:
-            raise ValueError(_("Unrecognized log level value in config"))
+        It is worth noting that this is where we turn our user provided config information
+        into the actual dictionaries to be consumed by our backend and client objects.
+        A particular consequence is that the division of "Client/Backend" in the config
+        file is purely cosmetic. Another consequence is that not all user provided config
+        information has to be processed at all. We just take what we need and can safely
+        ignore the rest. That way we can improve the config file layout without having to
+        adjust our code all the time. It also means our main code does not have to deal with
+        turning ``path`` plus ``name`` into a full location and such.
+        """
+
+        def get_logfile_path():
+            log_dir = work_dir or AppDirs.user_log_dir
+            return os.path.join(log_dir, config.get('Client', 'log_filename'))
+
+        def get_log_level():
+            LOG_LEVELS = {
+                'info': logging.INFO,
+                'debug': logging.DEBUG,
+                'warning': logging.WARNING,
+                'error': logging.ERROR,
+            }
+            try:
+                log_level = LOG_LEVELS[config.get('Client', 'log_level').lower()]
+            except KeyError:
+                raise ValueError(_("Unrecognized log level value in config"))
+            return log_level
+
+        def get_log_console():
+            return config.getboolean('Client', 'log_console')
+
+        def get_dbus():
+            return config.getboolean('Client', 'dbus')
 
         return {
-            'cwd': config.get('Client', 'cwd'),
-            'tmp_filename': config.get('Client', 'tmp_filename'),
-            'log_console': config.getboolean('Client', 'log_console'),
-            'log_file': config.getboolean('Client', 'log_file'),
-            'log_filename': config.get('Client', 'log_filename'),
-            'log_level': log_level,
-            'dbus': config.getboolean('Client', 'dbus'),
+            'log_level': get_log_level(),
+            'log_console': get_log_console(),
+            'logfile_path': get_logfile_path(),
+            'dbus': get_dbus(),
         }
 
     def get_backend_config(config):
         """
+        Return properly populated config dictionaries for consumption by our application.
+
         Make sure config values are of proper type and provide basic
         sanity checks (e.g. make sure we got a filename if we want to log to
         file and such..).
 
-        [TODO]
-        Re-evaluate
+        Setting of config values that are not actually derived from our config file but by
+        inspecting our runtime environment (e.g. path information) happens here as well.
 
-        At least the validation code/sanity checks may be relevant to other
-        clients as well. So mabe this qualifies for inclusion into
-        hammsterlib?
+        Note:
+            At least the validation code/sanity checks may be relevant to other
+            clients as well. So mabe this qualifies for inclusion into
+            hammsterlib?
         """
-        try:
-            day_start = datetime.datetime.strptime(config.get('Backend',
-                'daystart'), '%H:%M:%S').time()
-        except ValueError:
-            raise ValueError(_("We encountered an error when parsing configs"
-                        "'day_start' value! Aborting ..."))
 
-        # [FIXME]
-        # Thhis should live with hamsterlib instead!
-        STORE_OPTIONS = ('sqlalchemy',)
+        def get_day_start():
+            try:
+                day_start = datetime.datetime.strptime(config.get('Backend',
+                    'daystart'), '%H:%M:%S').time()
+            except ValueError:
+                raise ValueError(_("We encountered an error when parsing configs"
+                            "'day_start' value! Aborting ..."))
+            return day_start
 
-        store = config.get('Backend', 'store')
-        if store not in STORE_OPTIONS:
-            sys.exit(_("Unrecognized store option."))
+        def get_store():
+            store = config.get('Backend', 'store')
+            if store not in hamsterlib.lib.REGISTERED_BACKENDS.keys():
+                raise ValueError(_("Unrecognized store option."))
+            return store
+
+        def get_db_path():
+            return config.get('Backend', 'db_path')
+
+        def get_tmpfile_name():
+            return config.get('Backend', 'tmpfile_name')
+
+        def get_fact_min_delta():
+            return config.get('Backend', 'fact_min_delta')
+
+        def get_work_dir():
+            return work_dir or AppDirs.user_data_dir
 
         return {
-            'day_start': day_start,
-            'unsorted_localized': config.get('Backend', 'unsorted_localized'),
-            'store': store,
-            'db-path': config.get('Backend', 'db_path'),
-            'fact_min_delta': config.get('Backend', 'fact_min_delta'),
+            'work_dir': get_work_dir(),
+            'store': get_store(),
+            'day_start': get_day_start(),
+            'db_path': get_db_path(),
+            'tmpfile_name': get_tmpfile_name(),
+            'fact_min_delta': get_fact_min_delta(),
         }
 
-    config = SafeConfigParser()
-    if not config.read(file_path):
-        raise IOError(_("Failed to process config file!"))
+    return (get_backend_config(config_instance), get_client_config(config_instance))
 
-    return (get_backend_config(config), get_client_config(config))
+
+def _get_config_instance():
+    """
+    Return a SafeConfigParser instance.
+
+    If we can not find a config file under its expected location, we trigger creation
+    of a new default file and return its instance.
+
+    Returns:
+        SafeConfigParser: Either the config loaded from file or an instance representing
+            the content of our newly creating default config.
+    """
+    def get_config_path():
+        config_dir = AppDirs.user_config_dir
+        config_filename = 'hamster_cli.conf'
+        return os.path.join(config_dir, config_filename)
+
+    config = SafeConfigParser()
+    configfile_path = get_config_path()
+    if not config.read(configfile_path):
+        click.echo(_("No valid config file found. Trying to create a new default config"
+                     " at: '{}'.".format(configfile_path)))
+        config = _write_config_file(configfile_path)
+        click.echo(_("A new default config file has been successfully created."))
+    return config
+
+
+def _write_config_file(file_path):
+    """
+    Write a default config file to the specified location.
+
+    Returns:
+        SafeConfigParser: Instace written to file.
+    """
+    # [FIXME]
+    # This may be usefull to turn into a proper command, so users can restore to
+    # factory settings easily.
+
+    def get_db_path():
+        filepath = os.path.join(str(AppDirs.user_data_dir), 'hamster_cli.db')
+        return 'sqlite:////{}'.format(filepath)
+
+    config = SafeConfigParser()
+
+    # Backend
+    config.add_section('Backend')
+    config.set('Backend', 'store', 'sqlalchemy')
+    config.set('Backend', 'daystart', '00:00:00')
+    config.set('Backend', 'db_path', get_db_path())
+    config.set('Backend', 'tmpfile_name', 'test_tmp_fact.pickle')
+    config.set('Backend', 'fact_min_delta', '60')
+    config.set('Backend', 'db_engine', '')
+    config.set('Backend', 'db_uri', '')
+    config.set('Backend', 'db_user', '')
+    config.set('Backend', 'db_password', '')
+
+    # Client
+    config.add_section('Client')
+    config.set('Client', 'unsorted_localized', 'Unsorted')
+    config.set('Client', 'log_level', 'debug')
+    config.set('Client', 'log_console', 'False')
+    config.set('Client', 'log_filename', 'hamster_cli.log')
+    config.set('Client', 'dbus', 'False')
+
+    configfile_path = os.path.dirname(file_path)
+    if not os.path.lexists(configfile_path):
+        os.makedirs(configfile_path)
+    with open(file_path, 'w') as fobj:
+        config.write(fobj)
+
+    return config
 
 
 def _generate_facts_table(facts):
@@ -564,3 +751,7 @@ def _generate_facts_table(facts):
         ))
 
     return (table, header)
+
+
+if __name__ == '__main__':
+    run()
