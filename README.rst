@@ -11,8 +11,8 @@ hamster_cli
 .. image:: https://img.shields.io/codecov/c/github/elbenfreund/hamster_cli/master.svg
         :target: https://codecov.io/github/elbenfreund/hamster_cli
 
-.. image:: https://readthedocs.org/projects/hamster_cli/badge/?version=latest
-        :target: https://readthedocs.org/projects/hamster_cli/?badge=latest
+.. image:: https://readthedocs.org/projects/hamst-cli/badge/?version=master
+        :target: https://readthedocs.org/projects/hamst-cli/badge/?version=master
         :alt: Documentation Status
 
 .. image:: https://badge.waffle.io/elbenfreund/hamster_cli.png?label=ready&title=Ready
@@ -26,6 +26,11 @@ hamster_cli
 
 
 A basic CLI for the hamster time tracker.
+
+*WARGING* 
+This is still pre-alpha software. Altough we are reaching apoint were most things work
+as intended we make no promisse about your data as well as any commitment. In particular there is no
+intension to migrate any databases from this version to any future more mature release.
 
 News (2016-04-16)
 -----------------
@@ -48,9 +53,9 @@ Features
 * Few dependencies
 * Active development.
 
-Resourcecs
+Resources
 -----------
-* Documentation: https://hamster_cli.readthedocs.org.
+* `Documentation <https://hamst-cli.readthedocs.org/en/master/>`_
 
 Credits
 ---------
