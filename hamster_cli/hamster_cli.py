@@ -261,25 +261,27 @@ def _start(controler, raw_fact, start, end):
 
     # The following is needed becauses start and end may be ``None``.
     if not fact.start:
-        start_date = None
-        start_time = None
-    else:
-        start_date = fact.start.date()
-        start_time = fact.start.time()
+        # No time information has been passed at all.
+        fact.start = datetime.datetime.now()
 
-    if not fact.end:
-        end_date = None
-        end_time = None
     else:
-        end_date = fact.end.date()
-        end_time = fact.end.time()
+        # We got some time information, which may be incomplete however.
+        if not fact.end:
+            end_date = None
+            end_time = None
+        else:
+            end_date = fact.end.date()
+            end_time = fact.end.time()
 
-    timeframe = helpers.TimeFrame(start_date, start_time, end_date, end_time, None)
-    fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
+        timeframe = helpers.TimeFrame(
+            fact.start.date(), fact.start.time(), end_date, end_time, None)
+        fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
 
     if tmp_fact:
         # Quick fix for tmp facts. that way we can use the default helper
         # function which will autocomplete the end info as well.
+        # Because of our use of ``complete timeframe our 'ongoing fact' may have
+        # recieved an ``end`` value now. In that case we reset it to ``None``.
         fact.end = None
 
     controler.client_logger.debug(_(
