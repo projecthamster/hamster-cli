@@ -17,7 +17,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'appdirs',
     'Click',
-    'hamsterlib',
+    'hamsterlib >= 0.1.0',
     'tabulate',
     'six',
 ]

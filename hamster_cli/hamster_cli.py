@@ -377,8 +377,7 @@ def _export(controler, format, start, end):
     if not end:
         end = None
 
-    filename = 'report.{extension}'.format(extension=format)
-    filepath = os.path.join(controler.config['work_dir'], filename)
+    filepath = controler.client_config['export_path']
     facts = controler.facts.get_all(start=start, end=end)
     if format == 'csv':
         writer = reports.TSVWriter(filepath)
@@ -542,6 +541,8 @@ def _get_config(config_instance):
         sanity checks (e.g. make sure we got a filename if we want to log to
         file and such..).
 
+        Not all key/values returned here need to be user configurable!
+
         It is worth noting that this is where we turn our user provided config information
         into the actual dictionaries to be consumed by our backend and client objects.
         A particular consequence is that the division of "Client/Backend" in the config
@@ -572,14 +573,15 @@ def _get_config(config_instance):
         def get_log_console():
             return config.getboolean('Client', 'log_console')
 
-        def get_dbus():
-            return config.getboolean('Client', 'dbus')
+        def get_export_dir():
+            """Return path to save exports to. Filenextension will be added by export method."""
+            return os.path.join(AppDirs.user_data_dir, 'export')
 
         return {
             'log_level': get_log_level(),
             'log_console': get_log_console(),
             'logfile_path': get_logfile_path(),
-            'dbus': get_dbus(),
+            'export_path': get_export_dir(),
         }
 
     def get_backend_config(config):
@@ -617,23 +619,43 @@ def _get_config(config_instance):
         def get_db_path():
             return config.get('Backend', 'db_path')
 
-        def get_tmpfile_name():
-            return config.get('Backend', 'tmpfile_name')
-
         def get_fact_min_delta():
             return config.get('Backend', 'fact_min_delta')
 
-        def get_work_dir():
-            return work_dir or AppDirs.user_data_dir
+        def get_tmpfile_path():
+            """Return path to file used to store *ongoing fact*"""
+            return os.path.join(AppDirs.user_data_dir, 'hamster_cli.fact')
 
-        return {
-            'work_dir': get_work_dir(),
+        def get_db_config():
+            """Provide a dict with db-specifiy key/value to be added to the backend config."""
+            result = {}
+            store = get_store()
+            if store == 'sqlalchemy':
+                engine = config.get('Backend', 'db_engine')
+                result = {'db_engine': engine}
+                if engine == 'sqlite':
+                    result.update({'db_path': config.get('Backend', 'db_path')})
+                else:
+                    result.update({
+                        'db_host': config.get('Backend', 'db_host'),
+                        'db_port': config.get('Backend', 'db_port'),
+                        'db_name': config.get('Backend', 'db_name'),
+                        'db_user': config.get('Backend', 'db_user'),
+                        'db_password': config.get('Backend', 'db_password'),
+                    })
+            else:
+                # hamsterlib currently supports 'sqlalchemy' store.
+                pass
+            return result
+
+        backend_config = {
             'store': get_store(),
             'day_start': get_day_start(),
-            'db_path': get_db_path(),
-            'tmpfile_name': get_tmpfile_name(),
             'fact_min_delta': get_fact_min_delta(),
+            'tmpfile_path': get_tmpfile_path(),
         }
+        backend_config.update(get_db_config())
+        return backend_config
 
     return (get_backend_config(config_instance), get_client_config(config_instance))
 
@@ -676,8 +698,10 @@ def _write_config_file(file_path):
     # factory settings easily.
 
     def get_db_path():
-        filepath = os.path.join(str(AppDirs.user_data_dir), 'hamster_cli.db')
-        return 'sqlite:////{}'.format(filepath)
+        return os.path.join(str(AppDirs.user_data_dir), 'hamster_cli.sqlite')
+
+    def get_tmp_file_path():
+        return os.path.join(str(AppDirs.user_data_dir), 'hamster_cli.fact')
 
     config = SafeConfigParser()
 
@@ -685,11 +709,12 @@ def _write_config_file(file_path):
     config.add_section('Backend')
     config.set('Backend', 'store', 'sqlalchemy')
     config.set('Backend', 'daystart', '00:00:00')
-    config.set('Backend', 'db_path', get_db_path())
-    config.set('Backend', 'tmpfile_name', 'test_tmp_fact.pickle')
     config.set('Backend', 'fact_min_delta', '60')
-    config.set('Backend', 'db_engine', '')
-    config.set('Backend', 'db_uri', '')
+    config.set('Backend', 'db_engine', 'sqlite')
+    config.set('Backend', 'db_host', '')
+    config.set('Backend', 'db_port', '')
+    config.set('Backend', 'db_name', '')
+    config.set('Backend', 'db_path', get_db_path())
     config.set('Backend', 'db_user', '')
     config.set('Backend', 'db_password', '')
 
@@ -699,7 +724,6 @@ def _write_config_file(file_path):
     config.set('Client', 'log_level', 'debug')
     config.set('Client', 'log_console', 'False')
     config.set('Client', 'log_filename', 'hamster_cli.log')
-    config.set('Client', 'dbus', 'False')
 
     configfile_path = os.path.dirname(file_path)
     if not os.path.lexists(configfile_path):

@@ -269,6 +269,24 @@ class TestGetConfig(object):
             backend, client = hamster_cli._get_config(
                 config_instance(daystart=day_start))
 
+    def test_invalid_store(self, config_instance):
+        """Make sure that encountering an unsupportet store will raise an exception."""
+        with pytest.raises(ValueError):
+            backend, client = hamster_cli._get_config(config_instance(store='foobar'))
+
+    def test_non_sqlite(self, config_instance):
+        """Make sure that passing a store other than 'sqlalchemy' raises exception."""
+        config_instance = config_instance(db_engine='postgres')
+        backend, client = hamster_cli._get_config(config_instance)
+        assert backend['db_host'] == config_instance.get('Backend', 'db_host')
+        assert backend['db_port'] == config_instance.get('Backend', 'db_port')
+        assert backend['db_name'] == config_instance.get('Backend', 'db_name')
+        assert backend['db_user'] == config_instance.get('Backend', 'db_user')
+        assert backend['db_password'] == config_instance.get('Backend', 'db_password')
+
+
+
+
 
 class TestGetConfigInstance():
     def test_no_file_present(self, appdirs, mocker):
