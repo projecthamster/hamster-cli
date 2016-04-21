@@ -229,9 +229,6 @@ def _start(controler, raw_fact, start, end):
             in the resulting fact in such a case.
     """
 
-    # Handle empty strings.
-    if not raw_fact:
-        raise click.ClickException(_("Please provide a non-empty activity name."))
     fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:

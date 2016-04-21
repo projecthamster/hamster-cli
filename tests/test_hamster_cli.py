@@ -285,9 +285,6 @@ class TestGetConfig(object):
         assert backend['db_password'] == config_instance.get('Backend', 'db_password')
 
 
-
-
-
 class TestGetConfigInstance():
     def test_no_file_present(self, appdirs, mocker):
         """Make sure a new vanilla config is written if no config is found."""
