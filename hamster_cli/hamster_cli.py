@@ -364,9 +364,6 @@ def export(controler, format, start, end):
     """
     Export all facts of within a given timewindow to a file of specified format.
 
-    The resulting file will be exported to ``store.lib_config['work_dir']`` and be
-    named ``reports``. Its fileexension depends on the chosen format option.
-
     Args:
         format (optional): Export format. Currently supported options are: 'csv'.
             Defaults to ``csv``.
@@ -599,14 +596,6 @@ def _get_config(config_instance):
     # We propably can make better use of configparsers default config optionn,
     # but for now this will do.
 
-    # Check if config overrides our default path logic.
-    # [FIXME]
-    # Once we got proper defaults up and running, this should be cleaner.
-    try:
-        work_dir = config_instance.get('Client', 'work_dir')
-    except NoOptionError:
-        work_dir = None
-
     def get_client_config(config):
         """
         Make sure config values are of proper type and provide basic
@@ -626,7 +615,7 @@ def _get_config(config_instance):
         """
 
         def get_logfile_path():
-            log_dir = work_dir or AppDirs.user_log_dir
+            log_dir = AppDirs.user_log_dir
             return os.path.join(log_dir, config.get('Client', 'log_filename'))
 
         def get_log_level():
