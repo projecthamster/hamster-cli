@@ -43,6 +43,7 @@ The main tasks of this CLI are twofold:
         relevant command line output. Only actual errors that are not part of the expected
         user interaction shall get through as exceptions.
 """
+from __future__ import absolute_import, unicode_literals
 
 import datetime
 import logging
@@ -508,6 +509,45 @@ def license():
     click.echo(license)
 
 
+@run.command()
+@pass_controler
+def details(controler):
+    """List details about the runtime environment."""
+    def get_db_info():
+        result = None
+
+        def get_sqlalchemy_info():
+            engine = controler.config['db_engine']
+            if engine == 'sqlite':
+                sqlalchemy_string = _("Using 'sqlite' with database stored under: {}".format(
+                    controler.config['db_path']))
+            else:
+                port = controler.config.get('db_port', '')
+                if port:
+                    port = ':{}'.format(port)
+
+                sqlalchemy_string = _(
+                    "Using '{engine}' connecting to database {name} on {host}{port}"
+                    " as user {username}.".format(
+                        engine=engine, host=controler.config['db_host'], port=port,
+                        username=controler.config['db_user'], name=controler.config['db_name'])
+                )
+            return sqlalchemy_string
+
+        # For now we do not need to check for various store option as we allow
+        # only one anyway.
+        result = get_sqlalchemy_info()
+        return result
+
+    from hamster_cli import __version__, __appname__
+    click.echo(_("You are running {name} version {version}.".format(
+        name=__appname__, version=__version__)))
+    click.echo("Configuration found under: {}.".format(_get_config_path()))
+    click.echo("Logfile stored under: {}.".format(controler.client_config['logfile_path']))
+    click.echo("Reports exported to: {}.".format(controler.client_config['export_path']))
+    click.echo(get_db_info())
+
+
 # Helper functions
 def _setup_logging(controler):
     """Setup logging for the lib_logger as well as client specific logging."""
@@ -668,9 +708,13 @@ def _get_config(config_instance):
                 if engine == 'sqlite':
                     result.update({'db_path': config.get('Backend', 'db_path')})
                 else:
+                    try:
+                        result.update({'db_port': config.get('Backend', 'db_port')})
+                    except KeyError:
+                        pass
+
                     result.update({
                         'db_host': config.get('Backend', 'db_host'),
-                        'db_port': config.get('Backend', 'db_port'),
                         'db_name': config.get('Backend', 'db_name'),
                         'db_user': config.get('Backend', 'db_user'),
                         'db_password': config.get('Backend', 'db_password'),
