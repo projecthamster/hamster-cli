@@ -11,6 +11,7 @@ import pytest
 # possible.
 from backports.configparser import SafeConfigParser
 from click import ClickException
+import fauxfactory
 from freezegun import freeze_time
 
 from hamster_cli import hamster_cli
@@ -131,6 +132,28 @@ class TestExport():
             path))
         hamster_cli._export(controler, 'csv', None, None)
         assert hamsterlib.reports.TSVWriter.called
+
+    def test_with_start(self, controler, controler_with_logging, tmpdir, mocker):
+        """Make sure that passing a end date is passed to the fact gathering method."""
+        controler.facts.get_all = mocker.MagicMock()
+        path = os.path.join(tmpdir.mkdir('report').strpath, 'report.csv')
+        hamsterlib.reports.TSVWriter = mocker.MagicMock(return_value=hamsterlib.reports.TSVWriter(
+            path))
+        start = fauxfactory.gen_datetime()
+        hamster_cli._export(controler, 'csv', start, None)
+        args, kwargs = controler.facts.get_all.call_args
+        assert kwargs['start'] == start
+
+    def test_with_end(self, controler, controler_with_logging, tmpdir, mocker):
+        """Make sure that passing a end date is passed to the fact gathering method."""
+        controler.facts.get_all = mocker.MagicMock()
+        path = os.path.join(tmpdir.mkdir('report').strpath, 'report.csv')
+        hamsterlib.reports.TSVWriter = mocker.MagicMock(return_value=hamsterlib.reports.TSVWriter(
+            path))
+        end = fauxfactory.gen_datetime()
+        hamster_cli._export(controler, 'csv', None, end)
+        args, kwargs = controler.facts.get_all.call_args
+        assert kwargs['end'] == end
 
 
 class TestCategories():
