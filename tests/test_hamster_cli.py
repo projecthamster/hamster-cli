@@ -191,7 +191,10 @@ class TestCurrent(object):
 
 
 class TestActivities(object):
+    """Unittests for the ``activities`` command."""
+
     def test_activities_no_category(self, controler, activity, mocker, capsys):
+        """Make sure command works if activities do not have a category associated."""
         activity.category = None
         controler.activities.get_all = mocker.MagicMock(
             return_value=[activity])
@@ -205,6 +208,7 @@ class TestActivities(object):
 
     def test_activities_with_category(self, controler, activity, mocker,
             capsys):
+        """Make sure activity name and category are displayed if present."""
         controler.activities.get_all = mocker.MagicMock(
             return_value=[activity])
         hamster_cli._activities(controler, '')
@@ -226,7 +230,10 @@ class TestActivities(object):
 
 
 class TestSetupLogging(object):
+    """Make surr that our logging setup is executed as expected."""
+
     def test_setup_logging(self, controler, client_config, lib_config):
+        """Test that library and client logger have log level set according to config."""
         hamster_cli._setup_logging(controler)
         assert controler.lib_logger.level == (
             controler.client_config['log_level'])
@@ -234,6 +241,7 @@ class TestSetupLogging(object):
             controler.client_config['log_level'])
 
     def test_setup_logging_log_console_True(self, controler):
+        """Make sure that if console loggin is on lib and client logger have a streamhandler."""
         controler.client_config['log_console'] = True
         hamster_cli._setup_logging(controler)
         assert isinstance(controler.client_logger.handlers[0],
@@ -242,12 +250,14 @@ class TestSetupLogging(object):
             logging.StreamHandler)
         assert controler.client_logger.handlers[0].formatter
 
-    def test_setup_logging_log_console_False(self, controler):
+    def test_setup_logging_no_logging(self, controler):
+        """Make sure that if no logging enabled, our loggers don't have any handlers."""
         hamster_cli._setup_logging(controler)
         assert controler.lib_logger.handlers == []
         assert controler.client_logger.handlers == []
 
     def test_setup_logging_log_file_True(self, controler, appdirs):
+        """Make sure that if we enable a logfile_path, both loggers recieve a ``FileHandler``."""
         controler.client_config['logfile_path'] = os.path.join(appdirs.user_log_dir, 'foobar.log')
         hamster_cli._setup_logging(controler)
         assert isinstance(controler.lib_logger.handlers[0],
@@ -255,31 +265,27 @@ class TestSetupLogging(object):
         assert isinstance(controler.client_logger.handlers[0],
             logging.FileHandler)
 
-    def test_setup_logging_log_file_False(self, controler):
-        hamster_cli._setup_logging(controler)
-        assert controler.lib_logger.handlers == []
-        assert controler.client_logger.handlers == []
-
-
-class TestLaunchWindow(object):
-    pass
-
 
 class TestGetConfig(object):
+    """Make sure that turning a config instance into proper config dictionaries works."""
+
     @pytest.mark.parametrize('log_level', ['debug'])
     def test_log_levels_valid(self, log_level, config_instance):
+        """Make sure that *string loglevels* translate to their respective integers properly."""
         backend, client = hamster_cli._get_config(
             config_instance(log_level=log_level))
         assert client['log_level'] == 10
 
     @pytest.mark.parametrize('log_level', ['foobar'])
     def test_log_levels_invalid(self, log_level, config_instance):
+        """Test that invalid *string loglevels* raise ``ValueError``."""
         with pytest.raises(ValueError):
             backend, client = hamster_cli._get_config(
                 config_instance(log_level=log_level))
 
     @pytest.mark.parametrize('day_start', ['05:00:00'])
     def test_daystart_valid(self, config_instance, day_start):
+        """Test that ``day_start`` string translate to proper ``datetime.time`` instances."""
         backend, client = hamster_cli._get_config(config_instance(
             daystart=day_start))
         assert backend['day_start'] == datetime.datetime.strptime(
@@ -287,6 +293,7 @@ class TestGetConfig(object):
 
     @pytest.mark.parametrize('day_start', ['foobar'])
     def test_daystart_invalid(self, config_instance, day_start):
+        """Test that invalid ``day_start`` strings raises ``ValueError``."""
         with pytest.raises(ValueError):
             backend, client = hamster_cli._get_config(
                 config_instance(daystart=day_start))
