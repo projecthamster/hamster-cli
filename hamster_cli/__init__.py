@@ -17,3 +17,4 @@
 __author__ = 'Eric Goller'
 __email__ = 'Elbenfreund@DenkenInEchtzeit.net'
 __version__ = '0.11.1'
+__appname__ = 'hamster_cli'
