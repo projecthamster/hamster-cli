@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 
+import fauxfactory
 import hamsterlib
 import pytest
 # Once we drop py2 support, we can use the builtin again but unicode support
@@ -11,7 +12,6 @@ import pytest
 # possible.
 from backports.configparser import SafeConfigParser
 from click import ClickException
-import fauxfactory
 from freezegun import freeze_time
 
 from hamster_cli import hamster_cli

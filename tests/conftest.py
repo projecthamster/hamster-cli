@@ -20,7 +20,6 @@ import hamster_cli.hamster_cli as hamster_cli
 
 from . import factories
 
-
 register(factories.CategoryFactory)
 register(factories.ActivityFactory)
 register(factories.FactFactory)

@@ -690,27 +690,22 @@ def _get_config(config_instance):
         def get_db_config():
             """Provide a dict with db-specifiy key/value to be added to the backend config."""
             result = {}
-            store = get_store()
-            if store == 'sqlalchemy':
-                engine = config.get('Backend', 'db_engine')
-                result = {'db_engine': engine}
-                if engine == 'sqlite':
-                    result.update({'db_path': config.get('Backend', 'db_path')})
-                else:
-                    try:
-                        result.update({'db_port': config.get('Backend', 'db_port')})
-                    except KeyError:
-                        pass
-
-                    result.update({
-                        'db_host': config.get('Backend', 'db_host'),
-                        'db_name': config.get('Backend', 'db_name'),
-                        'db_user': config.get('Backend', 'db_user'),
-                        'db_password': config.get('Backend', 'db_password'),
-                    })
+            engine = config.get('Backend', 'db_engine')
+            result = {'db_engine': engine}
+            if engine == 'sqlite':
+                result.update({'db_path': config.get('Backend', 'db_path')})
             else:
-                # hamsterlib currently supports 'sqlalchemy' store.
-                pass
+                try:
+                    result.update({'db_port': config.get('Backend', 'db_port')})
+                except KeyError:
+                    pass
+
+                result.update({
+                    'db_host': config.get('Backend', 'db_host'),
+                    'db_name': config.get('Backend', 'db_name'),
+                    'db_user': config.get('Backend', 'db_user'),
+                    'db_password': config.get('Backend', 'db_password'),
+                })
             return result
 
         backend_config = {
