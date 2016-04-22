@@ -704,19 +704,21 @@ def _get_config_instance():
         SafeConfigParser: Either the config loaded from file or an instance representing
             the content of our newly creating default config.
     """
-    def get_config_path():
-        config_dir = AppDirs.user_config_dir
-        config_filename = 'hamster_cli.conf'
-        return os.path.join(config_dir, config_filename)
-
     config = SafeConfigParser()
-    configfile_path = get_config_path()
+    configfile_path = _get_config_path()
     if not config.read(configfile_path):
         click.echo(_("No valid config file found. Trying to create a new default config"
                      " at: '{}'.".format(configfile_path)))
         config = _write_config_file(configfile_path)
         click.echo(_("A new default config file has been successfully created."))
     return config
+
+
+def _get_config_path():
+    """Show general information upon client launch."""
+    config_dir = AppDirs.user_config_dir
+    config_filename = 'hamster_cli.conf'
+    return os.path.join(config_dir, config_filename)
 
 
 def _write_config_file(file_path):
