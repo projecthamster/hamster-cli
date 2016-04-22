@@ -435,3 +435,26 @@ class TestHamsterAppDirs(object):
         appdir = hamster_cli.HamsterAppDirs('hamster_cli')
         appdir.create = create
         assert os.path.exists(appdir.user_log_dir) is create
+
+
+class TestShowGreeting(object):
+    """Make shure our greeting function behaves as expected."""
+
+    def test_shows_welcome(self, capsys):
+        """Make sure we welcome our users properly."""
+        hamster_cli._show_greeting()
+        out, err = capsys.readouterr()
+        assert "Welcome to 'hamster_cli'" in out
+
+    def test_shows_copyright(self, capsys):
+        """Make sure we show basic copyright information."""
+        hamster_cli._show_greeting()
+        out, err = capsys.readouterr()
+        assert "Copyright" in out
+
+    def test_shows_license(self, capsys):
+        """Make sure we display a brief reference to the license."""
+        hamster_cli._show_greeting()
+        out, err = capsys.readouterr()
+        assert "GPL3" in out
+        assert "'license' command" in out

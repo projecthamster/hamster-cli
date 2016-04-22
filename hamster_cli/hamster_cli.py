@@ -816,7 +816,7 @@ def _show_greeting():
     click.echo(_("Welcome to 'hamster_cli', your friendly time tracker for the command line."))
     click.echo("Copyright (C) 2015-2016, Eric Goller <elbenfreund@DenkenInEchtzeit.net>")
     click.echo(_(
-        "'hamster_cli' is published under the term of the GPL3, for details please use"
+        "'hamster_cli' is published under the terms of the GPL3, for details please use"
         "the 'license' command."
     ))
     click.echo()
