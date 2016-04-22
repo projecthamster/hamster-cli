@@ -95,7 +95,7 @@ class TestStop(object):
             assert 'Unable to continue' in err
 
 
-class TestCancel():
+class TestCancel(object):
     """Unit tests related to cancelation of an ongoing fact."""
 
     def test_cancel_existing_tmp_fact(self, tmp_fact, controler_with_logging, mocker,
@@ -116,7 +116,7 @@ class TestCancel():
             assert 'Nothing tracked right now' in err
 
 
-class TestExport():
+class TestExport(object):
     """Unittests related to data export."""
     @pytest.mark.parametrize('format', ['ical', 'html'])
     def test_invalid_format(self, controler_with_logging, format, mocker):
@@ -156,7 +156,7 @@ class TestExport():
         assert kwargs['end'] == end
 
 
-class TestCategories():
+class TestCategories(object):
     """Unittest related to category listings."""
 
     def test_categories(self, controler_with_logging, category, mocker, capsys):
@@ -169,7 +169,7 @@ class TestCategories():
         assert controler.categories.get_all.called
 
 
-class TestCurrent():
+class TestCurrent(object):
     """Unittest for dealing with 'ongoing facts'."""
 
     def test_tmp_fact(self, controler, tmp_fact, controler_with_logging, capsys, fact, mocker):
@@ -190,7 +190,7 @@ class TestCurrent():
             assert 'There seems no be no activity beeing tracked right now' in err
 
 
-class TestActivities():
+class TestActivities(object):
     def test_activities_no_category(self, controler, activity, mocker, capsys):
         activity.category = None
         controler.activities.get_all = mocker.MagicMock(
@@ -225,7 +225,7 @@ class TestActivities():
         assert activity.category.name in out
 
 
-class TestSetupLogging():
+class TestSetupLogging(object):
     def test_setup_logging(self, controler, client_config, lib_config):
         hamster_cli._setup_logging(controler)
         assert controler.lib_logger.level == (
@@ -307,7 +307,7 @@ class TestGetConfig(object):
         assert backend['db_password'] == config_instance.get('Backend', 'db_password')
 
 
-class TestGetConfigInstance():
+class TestGetConfigInstance(object):
     def test_no_file_present(self, appdirs, mocker):
         """Make sure a new vanilla config is written if no config is found."""
         mocker.patch('hamster_cli.hamster_cli._write_config_file')
