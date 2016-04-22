@@ -147,6 +147,48 @@ def config_file(config_instance, appdirs):
 
 
 @pytest.fixture
+def get_config_file(config_instance, appdirs):
+    """Provide a dynamic config file store under our fake config dir."""
+    def generate(**kwargs):
+        instance = config_instance(**kwargs)
+        with open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'), 'w') as fobj:
+            instance.write(fobj)
+        return instance
+    return generate
+
+
+# Various config settings
+@pytest.fixture
+def db_name(request):
+    """Return a randomized database name."""
+    return fauxfactory.gen_utf8()
+
+
+@pytest.fixture
+def db_user(request):
+    """Return a randomized database username."""
+    return fauxfactory.gen_utf8()
+
+
+@pytest.fixture
+def db_password(request):
+    """Return a randomized database password."""
+    return fauxfactory.gen_utf8()
+
+
+@pytest.fixture(params=(fauxfactory.gen_latin1(), fauxfactory.gen_ipaddr()))
+def db_host(request):
+    """Return a randomized database username."""
+    return request.param
+
+
+@pytest.fixture
+def db_port(request):
+    """Return a randomized database port."""
+    return text_type(fauxfactory.gen_integer(min_value=0, max_value=65535))
+
+
+@pytest.fixture
 def tmp_fact(controler_with_logging, fact):
     fact.end = None
     fact = controler_with_logging.facts.save(fact)
