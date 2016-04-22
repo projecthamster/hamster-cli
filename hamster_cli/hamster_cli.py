@@ -374,6 +374,20 @@ def export(controler, format, start, end):
 
 
 def _export(controler, format, start, end):
+    """
+    Export all facts in the given timeframe in the format specified.
+
+    Args:
+        format (str): Format to export to. Valid options are: ``csv``.
+        start (datetime.datetime): Consider only facts starting at this time or later.
+        end (datetime.datetime): Consider only facts starting no later than this time.
+
+    Returns:
+        None: If everything went alright.
+
+    Raises:
+        click.Exception: If format is not recognized.
+    """
     accepted_formats = ['csv']
     # [TODO]
     # Once hamsterlib has a proper 'export' register available we should be able
@@ -425,6 +439,15 @@ def current(controler):
 
 
 def _current(controler):
+    """
+    Return current *ongoing fact*.
+
+    Returns:
+        None: If everything went alright.
+
+    Raises:
+        click.ClickException: If we fail to fetch any *ongoing fact*.
+    """
     try:
         fact = controler.facts.get_tmp_fact()
     except KeyError:
@@ -842,6 +865,7 @@ def _generate_facts_table(facts):
 
 
 def _show_greeting():
+    """Display a greeting message providing basic set of information."""
     click.echo(_("Welcome to 'hamster_cli', your friendly time tracker for the command line."))
     click.echo("Copyright (C) 2015-2016, Eric Goller <elbenfreund@DenkenInEchtzeit.net>")
     click.echo(_(
@@ -851,6 +875,7 @@ def _show_greeting():
     click.echo()
 
 if __name__ == '__main__':
+    """Run the module directly."""
     click.clear()
     _show_greeting()
     run()
