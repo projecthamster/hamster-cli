@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals
 import datetime
 import os
 import pickle as pickle
@@ -7,6 +8,7 @@ import hamsterlib
 import pytest
 from click.testing import CliRunner
 from pytest_factoryboy import register
+from six import text_type
 
 import hamster_cli.hamster_cli as hamster_cli
 
@@ -55,10 +57,11 @@ def appdirs(mocker, tmpdir):
 
 
 @pytest.fixture
-def runner(appdirs):
+def runner(appdirs, get_config_file):
     """Used for integrations tests."""
-    def runner(args=[]):
-        return CliRunner().invoke(hamster_cli.run, args)
+    def runner(args=[], **kwargs):
+        """kwargs will be used to modify our config file."""
+        return CliRunner().invoke(hamster_cli.run, args, **kwargs)
     return runner
 
 
