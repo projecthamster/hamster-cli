@@ -1,4 +1,6 @@
 from __future__ import absolute_import, unicode_literals
+
+import codecs
 import datetime
 import os
 import pickle as pickle
@@ -6,6 +8,10 @@ import pickle as pickle
 import fauxfactory
 import hamsterlib
 import pytest
+# Once we drop py2 support, we can use the builtin again but unicode support
+# under python 2 is practicly non existing and manual encoding is not easily
+# possible.
+from backports.configparser import SafeConfigParser
 from click.testing import CliRunner
 from pytest_factoryboy import register
 from six import text_type
@@ -14,10 +20,6 @@ import hamster_cli.hamster_cli as hamster_cli
 
 from . import factories
 
-try:
-    from configparser import SafeConfigParser
-except:
-    from ConfigParser import SafeConfigParser
 
 register(factories.CategoryFactory)
 register(factories.ActivityFactory)
@@ -142,7 +144,8 @@ def config_instance(tmpdir, faker):
 @pytest.fixture
 def config_file(config_instance, appdirs):
     """Provide a config file store under our fake config dir."""
-    with open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'), 'w') as fobj:
+    with codecs.open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'),
+            'w', encoding='utf-8') as fobj:
         config_instance().write(fobj)
 
 
@@ -151,7 +154,8 @@ def get_config_file(config_instance, appdirs):
     """Provide a dynamic config file store under our fake config dir."""
     def generate(**kwargs):
         instance = config_instance(**kwargs)
-        with open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'), 'w') as fobj:
+        with codecs.open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'),
+                'w', encoding='utf-8') as fobj:
             instance.write(fobj)
         return instance
     return generate

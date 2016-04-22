@@ -6,15 +6,14 @@ import os
 
 import hamsterlib
 import pytest
+# Once we drop py2 support, we can use the builtin again but unicode support
+# under python 2 is practicly non existing and manual encoding is not easily
+# possible.
+from backports.configparser import SafeConfigParser
 from click import ClickException
 from freezegun import freeze_time
 
 from hamster_cli import hamster_cli
-
-try:
-    from configparser import SafeConfigParser
-except:
-    from ConfigParser import SafeConfigParser
 
 
 class TestSearch(object):

@@ -19,7 +19,10 @@ requirements = [
     'Click',
     'hamsterlib >= 0.1.0',
     'tabulate',
+    # py27 compatibility related
     'six',
+    'future',
+    'configparser >= 3.5.0b2',
 ]
 
 setup(

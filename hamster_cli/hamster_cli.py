@@ -53,13 +53,12 @@ from gettext import gettext as _
 import appdirs
 import click
 import hamsterlib
+# Once we drop py2 support, we can use the builtin again but unicode support
+# under python 2 is practicly non existing and manual encoding is not easily
+# possible.
+from backports.configparser import SafeConfigParser
 from hamsterlib import Fact, HamsterControl, helpers, reports
 from tabulate import tabulate
-
-try:
-    from configparser import SafeConfigParser, NoOptionError
-except:
-    from ConfigParser import SafeConfigParser, NoOptionError
 
 
 class HamsterAppDirs(appdirs.AppDirs):
