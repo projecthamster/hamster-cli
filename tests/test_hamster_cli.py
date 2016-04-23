@@ -240,7 +240,7 @@ class TestSetupLogging(object):
         assert controler.client_logger.level == (
             controler.client_config['log_level'])
 
-    def test_setup_logging_log_console_True(self, controler):
+    def test_setup_logging_log_console_true(self, controler):
         """Make sure that if console loggin is on lib and client logger have a streamhandler."""
         controler.client_config['log_console'] = True
         hamster_cli._setup_logging(controler)
@@ -256,7 +256,7 @@ class TestSetupLogging(object):
         assert controler.lib_logger.handlers == []
         assert controler.client_logger.handlers == []
 
-    def test_setup_logging_log_file_True(self, controler, appdirs):
+    def test_setup_logging_log_file_true(self, controler, appdirs):
         """Make sure that if we enable a logfile_path, both loggers recieve a ``FileHandler``."""
         controler.client_config['logfile_path'] = os.path.join(appdirs.user_log_dir, 'foobar.log')
         hamster_cli._setup_logging(controler)
@@ -348,17 +348,17 @@ class TestGenerateTable(object):
 
 
 class TestWriteConfigFile(object):
-    def test_file_is_written(request, filepath):
+    def test_file_is_written(self, filepath):
         """Make sure the file is written. Content is not checked, this is ConfigParsers job."""
         hamster_cli._write_config_file(filepath)
         assert os.path.lexists(filepath)
 
-    def test_return_config_instance(request, filepath):
+    def test_return_config_instance(self, filepath):
         """Make sure we return a ``SafeConfigParser`` instance."""
         result = hamster_cli._write_config_file(filepath)
         assert isinstance(result, SafeConfigParser)
 
-    def test_non_existing_path(request, tmpdir, filename):
+    def test_non_existing_path(self, tmpdir, filename):
         """Make sure that the path-parents are created ifnot present."""
         filepath = os.path.join(tmpdir.strpath, 'foobar')
         assert os.path.lexists(filepath) is False
