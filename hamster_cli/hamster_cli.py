@@ -130,15 +130,23 @@ class HamsterAppDirs(appdirs.AppDirs):
         return directory
 
 
-AppDirs = HamsterAppDirs('hamster_cli')
-
-
 class Controler(HamsterControl):
     def __init__(self):
         """Instantiate controler instance and adding client_config to it."""
         lib_config, client_config = _get_config(_get_config_instance())
         super(Controler, self).__init__(lib_config)
         self.client_config = client_config
+
+
+LOG_LEVELS = {
+    'info': logging.INFO,
+    'debug': logging.DEBUG,
+    'warning': logging.WARNING,
+    'error': logging.ERROR,
+}
+
+
+AppDirs = HamsterAppDirs('hamster_cli')
 
 
 pass_controler = click.make_pass_decorator(Controler, ensure=True)
@@ -642,12 +650,6 @@ def _get_config(config_instance):
             return os.path.join(log_dir, config.get('Client', 'log_filename'))
 
         def get_log_level():
-            LOG_LEVELS = {
-                'info': logging.INFO,
-                'debug': logging.DEBUG,
-                'warning': logging.WARNING,
-                'error': logging.ERROR,
-            }
             try:
                 log_level = LOG_LEVELS[config.get('Client', 'log_level').lower()]
             except KeyError:
