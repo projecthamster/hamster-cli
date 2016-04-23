@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with 'hamster_cli'.  If not, see <http://www.gnu.org/licenses/>.
 
+"""``hamster_cli``, a command line time tracker utilizing the power of ``hamsterlib``."""
+
 
 __author__ = 'Eric Goller'
 __email__ = 'Elbenfreund@DenkenInEchtzeit.net'

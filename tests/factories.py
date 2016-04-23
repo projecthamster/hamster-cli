@@ -1,3 +1,5 @@
+"""Factories to provide easy to use randomized instances of our main objects."""
+
 import datetime
 
 import factory
@@ -6,6 +8,8 @@ import hamsterlib
 
 
 class CategoryFactory(factory.Factory):
+    """Provide a factory for randomized ``hamsterlib.Category`` instances."""
+
     pk = None
     name = factory.Faker('word')
 
@@ -14,6 +18,8 @@ class CategoryFactory(factory.Factory):
 
 
 class ActivityFactory(factory.Factory):
+    """Provide a factory for randomized ``hamsterlib.Activity`` instances."""
+
     pk = None
     name = factory.Faker('word')
     category = factory.SubFactory(CategoryFactory)
@@ -24,6 +30,8 @@ class ActivityFactory(factory.Factory):
 
 
 class FactFactory(factory.Factory):
+    """Provide a factory for randomized ``hamsterlib.Fact`` instances."""
+
     pk = None
     activity = factory.SubFactory(ActivityFactory)
     start = faker.Faker().date_time()
@@ -32,5 +40,3 @@ class FactFactory(factory.Factory):
 
     class Meta:
         model = hamsterlib.Fact
-
-0

@@ -16,6 +16,8 @@
 # along with 'hamster_cli'.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+A time tracker for the command line. Utilizing the power of hamsterlib.
+
 The rough idea of the original CLI was that it allows to start a Fact and then,
 at some later point one would stop the "current" activity.
 On top of that it realy then is just some listing/exporting capabilities.
@@ -64,6 +66,7 @@ from tabulate import tabulate
 
 class HamsterAppDirs(appdirs.AppDirs):
     """Custom class that ensure appdirs exist."""
+
     def __init__(self, *args, **kwargs):
         """Add create flag value to instance."""
         super(HamsterAppDirs, self).__init__(*args, **kwargs)
@@ -131,6 +134,8 @@ class HamsterAppDirs(appdirs.AppDirs):
 
 
 class Controler(HamsterControl):
+    """A custom controler that adds config handling on top of its regular functionality."""
+
     def __init__(self):
         """Instantiate controler instance and adding client_config to it."""
         lib_config, client_config = _get_config(_get_config_instance())
@@ -160,7 +165,7 @@ def run(controler):
 
 
 def _run(controler):
-    """Make sure that loggers are setup properly"""
+    """Make sure that loggers are setup properly."""
     _setup_logging(controler)
 
 
@@ -192,7 +197,6 @@ def _search(controler, search_term, time_range):
     We leave it to the backend to first parse the timeinfo and then complete any
     missing data based on the passed config settings.
     """
-
     if not time_range:
         start, end = (None, None)
     else:
@@ -245,14 +249,14 @@ def start(controler, raw_fact, start, end):
 
 
 def _start(controler, raw_fact, start, end):
-    """See `start` for details.
+    """
+    See `start` for details.
 
     Note:
         * Whilst it is possible to pass timeinformation as part of the ``raw_fact`` as
             well as dedicated ``start`` and ``end`` arguments only the latter will be represented
             in the resulting fact in such a case.
     """
-
     fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:
@@ -343,7 +347,6 @@ def cancel(controler):
     """
     Cancel 'ongoing fact'. E.g stop it without storing in the backend.
 
-
     Provide a confirmation/failure message to the user.
     """
     _cancel(controler)
@@ -420,7 +423,7 @@ def _export(controler, format, start, end):
 @run.command()
 @pass_controler
 def categories(controler):
-    """"
+    """
     List all existing categories, ordered by name.
 
     Note:
@@ -442,7 +445,6 @@ def _categories(controler):
 @pass_controler
 def current(controler):
     """Display current tmp fact."""
-
     _current(controler)
 
 
@@ -519,7 +521,7 @@ def about():
 
 @run.command()
 def license():
-    """Show license information"""
+    """Show license information."""
     license = """
         'hamster_cli' is free software: you can redistribute it and/or modify
         it under the terms of the GNU General Public License as published by
@@ -629,6 +631,8 @@ def _get_config(config_instance):
 
     def get_client_config(config):
         """
+        Process client section of provided config and turn it into proper config dictionary.
+
         Make sure config values are of proper type and provide basic
         sanity checks (e.g. make sure we got a filename if we want to log to
         file and such..).
@@ -644,7 +648,6 @@ def _get_config(config_instance):
         adjust our code all the time. It also means our main code does not have to deal with
         turning ``path`` plus ``name`` into a full location and such.
         """
-
         def get_logfile_path():
             log_dir = AppDirs.user_log_dir
             return os.path.join(log_dir, config.get('Client', 'log_filename'))
@@ -686,7 +689,6 @@ def _get_config(config_instance):
             clients as well. So mabe this qualifies for inclusion into
             hammsterlib?
         """
-
         def get_day_start():
             try:
                 day_start = datetime.datetime.strptime(config.get('Backend',
@@ -709,7 +711,7 @@ def _get_config(config_instance):
             return config.get('Backend', 'fact_min_delta')
 
         def get_tmpfile_path():
-            """Return path to file used to store *ongoing fact*"""
+            """Return path to file used to store *ongoing fact*."""
             return os.path.join(AppDirs.user_data_dir, 'hamster_cli.fact')
 
         def get_db_config():
