@@ -399,7 +399,7 @@ def _export(controler, format, start, end):
     Raises:
         click.Exception: If format is not recognized.
     """
-    accepted_formats = ['csv', 'ical']
+    accepted_formats = ['csv', 'ical', 'xml']
     # [TODO]
     # Once hamsterlib has a proper 'export' register available we should be able
     # to streamline this.
@@ -420,6 +420,10 @@ def _export(controler, format, start, end):
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
     elif format == 'ical':
         writer = reports.ICALWriter(filepath)
+        writer.write_report(facts)
+        click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
+    elif format == 'xml':
+        writer = reports.XMLWriter(filepath)
         writer.write_report(facts)
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
 

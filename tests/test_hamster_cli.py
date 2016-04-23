@@ -118,7 +118,7 @@ class TestCancel(object):
 
 class TestExport(object):
     """Unittests related to data export."""
-    @pytest.mark.parametrize('format', ['xml', 'html', fauxfactory.gen_latin1()])
+    @pytest.mark.parametrize('format', ['html', fauxfactory.gen_latin1()])
     def test_invalid_format(self, controler_with_logging, format, mocker):
         """Make sure that passing an invalid format exits prematurely."""
         controler = controler_with_logging
@@ -136,6 +136,12 @@ class TestExport(object):
         hamsterlib.reports.ICALWriter = mocker.MagicMock()
         hamster_cli._export(controler, 'ical', None, None)
         assert hamsterlib.reports.ICALWriter.called
+
+    def test_xml(self, controler, controler_with_logging, mocker):
+        """Make sure that passing 'xml' as format parameter returns the apropiate writer class."""
+        hamsterlib.reports.XMLWriter = mocker.MagicMock()
+        hamster_cli._export(controler, 'xml', None, None)
+        assert hamsterlib.reports.XMLWriter.called
 
     def test_with_start(self, controler, controler_with_logging, tmpdir, mocker):
         """Make sure that passing a end date is passed to the fact gathering method."""
