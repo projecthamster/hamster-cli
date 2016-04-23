@@ -376,7 +376,7 @@ def export(controler, format, start, end):
     Export all facts of within a given timewindow to a file of specified format.
 
     Args:
-        format (optional): Export format. Currently supported options are: 'csv'.
+        format (optional): Export format. Currently supported options are: ``csv`` and ``ical``.
             Defaults to ``csv``.
         start (optional): Start of timewindow. Defaults to ``empty string``.
         end (optional): End of timewindow. Defaults to ``empty string``.
@@ -389,7 +389,7 @@ def _export(controler, format, start, end):
     Export all facts in the given timeframe in the format specified.
 
     Args:
-        format (str): Format to export to. Valid options are: ``csv``.
+        format (str): Format to export to. Valid options are: ``csv`` and ``ical``.
         start (datetime.datetime): Consider only facts starting at this time or later.
         end (datetime.datetime): Consider only facts starting no later than this time.
 
@@ -399,7 +399,7 @@ def _export(controler, format, start, end):
     Raises:
         click.Exception: If format is not recognized.
     """
-    accepted_formats = ['csv']
+    accepted_formats = ['csv', 'ical']
     # [TODO]
     # Once hamsterlib has a proper 'export' register available we should be able
     # to streamline this.
@@ -416,6 +416,10 @@ def _export(controler, format, start, end):
     facts = controler.facts.get_all(start=start, end=end)
     if format == 'csv':
         writer = reports.TSVWriter(filepath)
+        writer.write_report(facts)
+        click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
+    elif format == 'ical':
+        writer = reports.ICALWriter(filepath)
         writer.write_report(facts)
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
 

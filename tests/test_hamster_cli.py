@@ -118,20 +118,24 @@ class TestCancel(object):
 
 class TestExport(object):
     """Unittests related to data export."""
-    @pytest.mark.parametrize('format', ['ical', 'html'])
+    @pytest.mark.parametrize('format', ['xml', 'html', fauxfactory.gen_latin1()])
     def test_invalid_format(self, controler_with_logging, format, mocker):
         """Make sure that passing an invalid format exits prematurely."""
         controler = controler_with_logging
         with pytest.raises(ClickException):
             hamster_cli._export(controler, format, None, None)
 
-    def test_valid_format(self, controler, controler_with_logging, tmpdir, mocker):
+    def test_csv(self, controler, controler_with_logging, mocker):
         """Make sure that a valid format returns the apropiate writer class."""
-        path = os.path.join(tmpdir.mkdir('report').strpath, 'report.csv')
-        hamsterlib.reports.TSVWriter = mocker.MagicMock(return_value=hamsterlib.reports.TSVWriter(
-            path))
+        hamsterlib.reports.TSVWriter = mocker.MagicMock()
         hamster_cli._export(controler, 'csv', None, None)
         assert hamsterlib.reports.TSVWriter.called
+
+    def test_ical(self, controler, controler_with_logging, mocker):
+        """Make sure that a valid format returns the apropiate writer class."""
+        hamsterlib.reports.ICALWriter = mocker.MagicMock()
+        hamster_cli._export(controler, 'ical', None, None)
+        assert hamsterlib.reports.ICALWriter.called
 
     def test_with_start(self, controler, controler_with_logging, tmpdir, mocker):
         """Make sure that passing a end date is passed to the fact gathering method."""
