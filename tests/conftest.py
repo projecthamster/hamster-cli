@@ -1,3 +1,11 @@
+"""
+Fixtures available in our tests.
+
+In general fixtures shoudl return a single instance. If a fixture is a factory its name should
+reflect that. Fixtures that are parametrized should be suffixed with ``_parametrized`` to indicate
+the potentially increased costs to it.
+"""
+
 from __future__ import absolute_import, unicode_literals
 
 import codecs
@@ -27,6 +35,7 @@ register(factories.FactFactory)
 
 @pytest.fixture
 def filename():
+    """Provide a filename string."""
     return fauxfactory.gen_utf8()
 
 
@@ -39,7 +48,6 @@ def filepath(tmpdir, filename):
 @pytest.fixture
 def appdirs(mocker, tmpdir):
     """Provide mocked version specific user dirs using a tmpdir."""
-
     def ensure_directory_exists(directory):
         if not os.path.lexists(directory):
             os.makedirs(directory)
@@ -59,9 +67,8 @@ def appdirs(mocker, tmpdir):
 
 @pytest.fixture
 def runner(appdirs, get_config_file):
-    """Used for integrations tests."""
+    """Provide a convenient fixture to simulate execution of (sub-) commands."""
     def runner(args=[], **kwargs):
-        """kwargs will be used to modify our config file."""
         return CliRunner().invoke(hamster_cli.run, args, **kwargs)
     return runner
 
@@ -75,7 +82,7 @@ def base_config():
 @pytest.fixture
 def lib_config(tmpdir):
     """
-    This is an actual config ficture, not config file.
+    Provide a backend config fixture. This can be passed to a controler directly.
 
     That means this fixture represents the the result of all typechecks and
     type conversions.
@@ -93,7 +100,7 @@ def lib_config(tmpdir):
 @pytest.fixture
 def client_config(tmpdir):
     """
-    This is an actual config ficture, not config file.
+    Provide a client config fixture. This can be passed to a controler directly.
 
     That means this fixture represents the the result of all typechecks and
     type conversions.
@@ -110,9 +117,7 @@ def client_config(tmpdir):
 
 @pytest.fixture
 def config_instance(tmpdir, faker):
-    """
-    This fixture provides a (dynamicly generated) SafeConfigParser instance.
-    """
+    """Provide a (dynamicly generated) SafeConfigParser instance."""
     def generate_config(**kwargs):
             config = SafeConfigParser()
             # Backend
@@ -193,6 +198,7 @@ def db_port(request):
 
 @pytest.fixture
 def tmp_fact(controler_with_logging, fact):
+    """Fixture that ensures there is a ``ongoing fact`` file present at the expected place."""
     fact.end = None
     fact = controler_with_logging.facts.save(fact)
     return fact
@@ -200,12 +206,14 @@ def tmp_fact(controler_with_logging, fact):
 
 @pytest.fixture
 def invalid_tmp_fact(tmpdir, client_config):
+    """Fixture to provide a *ongoing fact* file that contains an invalid object instance."""
     with open(client_config['tmp_filename'], 'wb') as fobj:
         pickle.dump(None, fobj)
 
 
 @pytest.yield_fixture
 def controler(lib_config, client_config):
+    """Provide a pseudo controler instance."""
     controler = hamsterlib.HamsterControl(lib_config)
     controler.client_config = client_config
     yield controler
@@ -214,6 +222,7 @@ def controler(lib_config, client_config):
 
 @pytest.yield_fixture
 def controler_with_logging(lib_config, client_config):
+    """Provide a pseudo controler instance with logging setup."""
     controler = hamsterlib.HamsterControl(lib_config)
     controler.client_config = client_config
     # [FIXME]
@@ -251,4 +260,5 @@ def controler_with_logging(lib_config, client_config):
     }),
 ])
 def search_parameter_parametrized(request):
+    """Provide a parametrized set of arguments for the ``search`` command."""
     return request.param
