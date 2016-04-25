@@ -18,3 +18,7 @@ integration tests.
   always try to handle those errors which are predictable and turn them into user
   relevant command line output. Only actual errors that are not part of the expected
   user interaction shall get through as exceptions.
+
+Propably better as subcommands:
+* ``categories`` (list)
+* ``activities`` (list)
