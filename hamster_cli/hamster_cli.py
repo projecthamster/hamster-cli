@@ -136,6 +136,8 @@ pass_controler = click.make_pass_decorator(Controler, ensure=True)
 @pass_controler
 def run(controler):
     """General context run right before any of the commands."""
+    click.clear()
+    _show_greeting()
     _run(controler)
 
 
@@ -854,9 +856,3 @@ def _show_greeting():
         "the 'license' command."
     ))
     click.echo()
-
-if __name__ == '__main__':
-    """Run the module directly."""
-    click.clear()
-    _show_greeting()
-    run()
