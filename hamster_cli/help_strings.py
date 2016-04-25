@@ -84,7 +84,10 @@ START_HELP = _(
       ' -MM'.
         * 'HH:MM': Starttime in hours an minutes.
         * 'HH:MM-HH:MM' Start and endtime given in ours and minutes.
-        * ' -MM' Starttime given as 'minutes before *now*.
+        * ' -MM' Starttime given as 'minutes before *now*. Please be advised:
+          You need to lead with a whitespace before the '-' sign or put ' -- '
+          before the start of your raw_fact. For details refer to
+          https://github.com/elbenfreund/hamster_cli/issues/108
       All times specified refer to *today*.
 
       \b
