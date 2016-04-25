@@ -97,8 +97,8 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.6, 2.7, 3.3, and 3.4, and for PyPy. Check
-   https://travis-ci.org/elbenfreund/hamster_cli/pull_requests
+3. The pull request should work for Python 2.6, 2.7, 3.3, and 3.4, and for
+   PyPy. Check https://travis-ci.org/elbenfreund/hamster_cli/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
 Tips
@@ -109,7 +109,7 @@ To run a subset of tests::
     $ make test TEST_ARGS="-k NAME_OF_TEST_OR_SUB_MODULE"
 
 or if you just want to run a particular tox environment::
-    
+
     $ tox -e NAMEOVENVORONMENT
 
 If you want to play around with an executeable version of you modified client::
@@ -119,6 +119,6 @@ If you want to play around with an executeable version of you modified client::
     $ pip install -e .
 
 This will install your WIP hamster-cli in a wroking state into your sandbox.
-Any changes to the codebase will be applied by that version right away. Please not
-that any files created by the client will persist even if you uninstall it or delete
-the virtualenv.
+Any changes to the codebase will be applied by that version right away. Please
+not that any files created by the client will persist even if you uninstall it
+or delete the virtualenv.

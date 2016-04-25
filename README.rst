@@ -27,18 +27,19 @@ hamster_cli
 
 A basic CLI for the hamster time tracker.
 
-*WARGING* 
-This is still pre-alpha software. Altough we are reaching apoint were most things work
-as intended we make no promisse about your data as well as any commitment. In particular there is no
-intension to migrate any databases from this version to any future more mature release.
+*WARNING*
+This is still pre-alpha software. Altough we are reaching apoint were most
+things work as intended we make no promisse about your data as well as any
+commitment. In particular there is no intension to migrate any databases from
+this version to any future more mature release.
 
 News (2016-04-16)
 -----------------
-Version 0.11.0 has been release. This is a major step forward as our previous release was rushed and
-turned out to be not too usable at all. This release Privides a solid and robust way to handle user
-configs as well as providing a default config setup.
-We further increased our test coverage and are well above 90% by now. Including some basic integration
-tests.
+Version 0.11.0 has been release. This is a major step forward as our previous
+release was rushed and turned out to be not too usable at all. This release
+provides a solid and robust way to handle user configs as well as providing a
+default config setup. We further increased our test coverage and are well above
+90% by now. Including some basic integration tests.
 For more details, see the changelog.
 
 Have fun tinkering, Eric.
