@@ -47,7 +47,11 @@ def filepath(tmpdir, filename):
 
 @pytest.fixture
 def appdirs(mocker, tmpdir):
-    """Provide mocked version specific user dirs using a tmpdir."""
+    """
+    Provide mocked version specific user dirs using a tmpdir.
+
+    We add a utf8-subdir to our paths to make sure our consuming methods can cope with it.
+    """
     def ensure_directory_exists(directory):
         if not os.path.lexists(directory):
             os.makedirs(directory)
@@ -55,13 +59,13 @@ def appdirs(mocker, tmpdir):
 
     hamster_cli.AppDirs = mocker.MagicMock()
     hamster_cli.AppDirs.user_config_dir = ensure_directory_exists(os.path.join(
-        tmpdir.mkdir('config').strpath, 'hamster_cli/'))
+        tmpdir.mkdir('config').mkdir(fauxfactory.gen_utf8()).strpath, 'hamster_cli/'))
     hamster_cli.AppDirs.user_data_dir = ensure_directory_exists(os.path.join(
-        tmpdir.mkdir('data').strpath, 'hamster_cli/'))
+        tmpdir.mkdir('data').mkdir(fauxfactory.gen_utf8()).strpath, 'hamster_cli/'))
     hamster_cli.AppDirs.user_cache_dir = ensure_directory_exists(os.path.join(
-        tmpdir.mkdir('cache').strpath, 'hamster_cli/'))
+        tmpdir.mkdir('cache').mkdir(fauxfactory.gen_utf8()).strpath, 'hamster_cli/'))
     hamster_cli.AppDirs.user_log_dir = ensure_directory_exists(os.path.join(
-        tmpdir.mkdir('log').strpath, 'hamster_cli/'))
+        tmpdir.mkdir('log').mkdir(fauxfactory.gen_utf8()).strpath, 'hamster_cli/'))
     return hamster_cli.AppDirs
 
 
@@ -92,7 +96,7 @@ def lib_config(tmpdir):
         'day_start': datetime.time(hour=0, minute=0, second=0),
         'db_engine': 'sqlite',
         'db_path': ':memory:',
-        'tmpfile_path': os.path.join(tmpdir.mkdir('cache2').strpath, 'test.pickle'),
+        'tmpfile_path': os.path.join(tmpdir.mkdir(fauxfactory.gen_utf8()).strpath, 'test.pickle'),
         'fact_min_delta': 60,
     }
 
@@ -110,8 +114,10 @@ def client_config(tmpdir):
         'log_level': 10,
         'log_console': False,
         'logfile_path': False,
-        'export_path': os.path.join(tmpdir.mkdir('export').strpath, 'export'),
-        'logging_path': os.path.join(tmpdir.mkdir('log2').strpath, 'hamster_cli.log'),
+        'export_path': os.path.join(
+            tmpdir.mkdir('export').mkdir(fauxfactory.gen_utf8()).strpath, 'export'),
+        'logging_path': os.path.join(
+            tmpdir.mkdir('log2').mkdir(fauxfactory.gen_utf8()).strpath, 'hamster_cli.log'),
     }
 
 
@@ -127,7 +133,7 @@ def config_instance(tmpdir, faker):
             config.set('Backend', 'fact_min_delta', kwargs.get('fact_min_delta', '60'))
             config.set('Backend', 'db_engine', kwargs.get('db_engine', 'sqlite'))
             config.set('Backend', 'db_path', kwargs.get('db_path', os.path.join(
-                tmpdir.strpath, 'hamster_db.sqlite')))
+                tmpdir.mkdir(fauxfactory.gen_utf8()).strpath, 'hamster_db.sqlite')))
             config.set('Backend', 'db_host', kwargs.get('db_host', ''))
             config.set('Backend', 'db_name', kwargs.get('db_name', ''))
             config.set('Backend', 'db_port', kwargs.get('db_port', ''))

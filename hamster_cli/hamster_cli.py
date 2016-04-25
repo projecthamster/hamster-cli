@@ -20,6 +20,7 @@
 
 from __future__ import absolute_import, unicode_literals
 
+import codecs
 import datetime
 import logging
 import os
@@ -35,6 +36,7 @@ import hamsterlib
 from backports.configparser import SafeConfigParser
 from hamsterlib import Fact, HamsterControl, helpers, reports
 from tabulate import tabulate
+from six import text_type
 
 from . import help_strings
 
@@ -756,10 +758,10 @@ def _write_config_file(file_path):
     # factory settings easily.
 
     def get_db_path():
-        return os.path.join(str(AppDirs.user_data_dir), 'hamster_cli.sqlite')
+        return os.path.join(text_type(AppDirs.user_data_dir), 'hamster_cli.sqlite')
 
     def get_tmp_file_path():
-        return os.path.join(str(AppDirs.user_data_dir), 'hamster_cli.fact')
+        return os.path.join(text_type(AppDirs.user_data_dir), 'hamster_cli.fact')
 
     config = SafeConfigParser()
 
@@ -786,7 +788,7 @@ def _write_config_file(file_path):
     configfile_path = os.path.dirname(file_path)
     if not os.path.lexists(configfile_path):
         os.makedirs(configfile_path)
-    with open(file_path, 'w') as fobj:
+    with codecs.open(file_path, 'w', encoding='utf-8') as fobj:
         config.write(fobj)
 
     return config
