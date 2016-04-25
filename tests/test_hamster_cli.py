@@ -285,8 +285,20 @@ class TestDetails(object):
         assert db_password not in out
 
 
+class TestLicense(object):
+    """Unittests for ``license`` command."""
+
+    def test_license_is_shown(self, capsys):
+        """Make sure the license text is actually displayed."""
+        hamster_cli._license()
+        out, err = capsys.readouterr()
+        assert "'hamster_cli' is free software" in out
+        assert "GNU General Public License" in out
+        assert "version 3" in out
+
+
 class TestSetupLogging(object):
-    """Make surr that our logging setup is executed as expected."""
+    """Make sure that our logging setup is executed as expected."""
 
     def test_setup_logging(self, controler, client_config, lib_config):
         """Test that library and client logger have log level set according to config."""

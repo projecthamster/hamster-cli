@@ -12,6 +12,14 @@ hamster_cli.hamster_cli module
     :undoc-members:
     :show-inheritance:
 
+hamster_cli.help_strings module
+-------------------------------
+
+.. automodule:: hamster_cli.help_strings
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

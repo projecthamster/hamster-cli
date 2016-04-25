@@ -483,6 +483,11 @@ def _activities(controler, search_term):
 @run.command(help=help_strings.LICENSE_HELP)
 def license():
     """Show license information."""
+    _license()
+
+
+def _license():
+    """Show license information."""
     license = """
         'hamster_cli' is free software: you can redistribute it and/or modify
         it under the terms of the GNU General Public License as published by
