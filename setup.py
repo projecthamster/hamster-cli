@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""Packing metadata for setuptools."""
 
 
 try:
@@ -17,14 +18,17 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'appdirs',
     'Click',
-    'hamsterlib',
+    'hamsterlib >= 0.1.0',
     'tabulate',
+    # py27 compatibility related
     'six',
+    'future',
+    'configparser >= 3.5.0b2',
 ]
 
 setup(
     name='hamster_cli',
-    version='0.11.1',
+    version='0.12.0',
     description="A basic CLI for the hamster time tracker.",
     long_description=readme + '\n\n' + history,
     author="Eric Goller",

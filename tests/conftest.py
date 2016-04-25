@@ -1,3 +1,14 @@
+"""
+Fixtures available in our tests.
+
+In general fixtures shoudl return a single instance. If a fixture is a factory its name should
+reflect that. Fixtures that are parametrized should be suffixed with ``_parametrized`` to indicate
+the potentially increased costs to it.
+"""
+
+from __future__ import absolute_import, unicode_literals
+
+import codecs
 import datetime
 import os
 import pickle as pickle
@@ -5,17 +16,17 @@ import pickle as pickle
 import fauxfactory
 import hamsterlib
 import pytest
+# Once we drop py2 support, we can use the builtin again but unicode support
+# under python 2 is practicly non existing and manual encoding is not easily
+# possible.
+from backports.configparser import SafeConfigParser
 from click.testing import CliRunner
 from pytest_factoryboy import register
+from six import text_type
 
 import hamster_cli.hamster_cli as hamster_cli
 
 from . import factories
-
-try:
-    from configparser import SafeConfigParser
-except:
-    from ConfigParser import SafeConfigParser
 
 register(factories.CategoryFactory)
 register(factories.ActivityFactory)
@@ -24,6 +35,7 @@ register(factories.FactFactory)
 
 @pytest.fixture
 def filename():
+    """Provide a filename string."""
     return fauxfactory.gen_utf8()
 
 
@@ -36,7 +48,6 @@ def filepath(tmpdir, filename):
 @pytest.fixture
 def appdirs(mocker, tmpdir):
     """Provide mocked version specific user dirs using a tmpdir."""
-
     def ensure_directory_exists(directory):
         if not os.path.lexists(directory):
             os.makedirs(directory)
@@ -55,10 +66,10 @@ def appdirs(mocker, tmpdir):
 
 
 @pytest.fixture
-def runner(appdirs):
-    """Used for integrations tests."""
-    def runner(args=[]):
-        return CliRunner().invoke(hamster_cli.run, args)
+def runner(appdirs, get_config_file):
+    """Provide a convenient fixture to simulate execution of (sub-) commands."""
+    def runner(args=[], **kwargs):
+        return CliRunner().invoke(hamster_cli.run, args, **kwargs)
     return runner
 
 
@@ -71,17 +82,17 @@ def base_config():
 @pytest.fixture
 def lib_config(tmpdir):
     """
-    This is an actual config ficture, not config file.
+    Provide a backend config fixture. This can be passed to a controler directly.
 
     That means this fixture represents the the result of all typechecks and
     type conversions.
     """
     return {
-        'work_dir': tmpdir.strpath,
         'store': 'sqlalchemy',
         'day_start': datetime.time(hour=0, minute=0, second=0),
-        'db_path': 'sqlite:///:memory:',
-        'tmpfile_name': 'test.pickle',
+        'db_engine': 'sqlite',
+        'db_path': ':memory:',
+        'tmpfile_path': os.path.join(tmpdir.mkdir('cache2').strpath, 'test.pickle'),
         'fact_min_delta': 60,
     }
 
@@ -89,49 +100,47 @@ def lib_config(tmpdir):
 @pytest.fixture
 def client_config(tmpdir):
     """
-    This is an actual config ficture, not config file.
+    Provide a client config fixture. This can be passed to a controler directly.
 
     That means this fixture represents the the result of all typechecks and
     type conversions.
     """
     return {
-        'work_dir': tmpdir.strpath,
         'unsorted_localized': 'Unsorted',
         'log_level': 10,
         'log_console': False,
         'logfile_path': False,
-        'dbus': False,
+        'export_path': os.path.join(tmpdir.mkdir('export').strpath, 'export'),
+        'logging_path': os.path.join(tmpdir.mkdir('log2').strpath, 'hamster_cli.log'),
     }
 
 
 @pytest.fixture
 def config_instance(tmpdir, faker):
-    """
-    This fixture provides a (dynamicly generated) SafeConfigParser instance.
-    """
+    """Provide a (dynamicly generated) SafeConfigParser instance."""
     def generate_config(**kwargs):
             config = SafeConfigParser()
             # Backend
             config.add_section('Backend')
             config.set('Backend', 'store', kwargs.get('store', 'sqlalchemy'))
             config.set('Backend', 'daystart', kwargs.get('daystart', '00:00:00'))
-            config.set('Backend', 'db_path', kwargs.get('db_path', 'sqlite:////:memory:'))
-            config.set('Backend', 'tmpfile_name', kwargs.get('tmpfile_name', 'test.pickle'))
             config.set('Backend', 'fact_min_delta', kwargs.get('fact_min_delta', '60'))
             config.set('Backend', 'db_engine', kwargs.get('db_engine', 'sqlite'))
-            config.set('Backend', 'db_uri', kwargs.get('db_uri', 'hamster_cli.db'))
+            config.set('Backend', 'db_path', kwargs.get('db_path', os.path.join(
+                tmpdir.strpath, 'hamster_db.sqlite')))
+            config.set('Backend', 'db_host', kwargs.get('db_host', ''))
+            config.set('Backend', 'db_name', kwargs.get('db_name', ''))
+            config.set('Backend', 'db_port', kwargs.get('db_port', ''))
             config.set('Backend', 'db_user', kwargs.get('db_user', '')),
             config.set('Backend', 'db_password', kwargs.get('db_password', ''))
 
             # Client
             config.add_section('Client')
-            config.set('Client', 'work_dir', kwargs.get('work_dir', tmpdir.strpath))
             config.set('Client', 'unsorted_localized', kwargs.get(
                 'unsorted_localized', 'Unsorted'))
             config.set('Client', 'log_level', kwargs.get('log_level', 'debug'))
             config.set('Client', 'log_console', kwargs.get('log_console', '0'))
             config.set('Client', 'log_filename', kwargs.get('log_filename', faker.file_name()))
-            config.set('Client', 'dbus', kwargs.get('dbus', '0'))
             return config
     return generate_config
 
@@ -139,12 +148,57 @@ def config_instance(tmpdir, faker):
 @pytest.fixture
 def config_file(config_instance, appdirs):
     """Provide a config file store under our fake config dir."""
-    with open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'), 'w') as fobj:
+    with codecs.open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'),
+            'w', encoding='utf-8') as fobj:
         config_instance().write(fobj)
 
 
 @pytest.fixture
+def get_config_file(config_instance, appdirs):
+    """Provide a dynamic config file store under our fake config dir."""
+    def generate(**kwargs):
+        instance = config_instance(**kwargs)
+        with codecs.open(os.path.join(appdirs.user_config_dir, 'hamster_cli.conf'),
+                'w', encoding='utf-8') as fobj:
+            instance.write(fobj)
+        return instance
+    return generate
+
+
+# Various config settings
+@pytest.fixture
+def db_name(request):
+    """Return a randomized database name."""
+    return fauxfactory.gen_utf8()
+
+
+@pytest.fixture
+def db_user(request):
+    """Return a randomized database username."""
+    return fauxfactory.gen_utf8()
+
+
+@pytest.fixture
+def db_password(request):
+    """Return a randomized database password."""
+    return fauxfactory.gen_utf8()
+
+
+@pytest.fixture(params=(fauxfactory.gen_latin1(), fauxfactory.gen_ipaddr()))
+def db_host(request):
+    """Return a randomized database username."""
+    return request.param
+
+
+@pytest.fixture
+def db_port(request):
+    """Return a randomized database port."""
+    return text_type(fauxfactory.gen_integer(min_value=0, max_value=65535))
+
+
+@pytest.fixture
 def tmp_fact(controler_with_logging, fact):
+    """Fixture that ensures there is a ``ongoing fact`` file present at the expected place."""
     fact.end = None
     fact = controler_with_logging.facts.save(fact)
     return fact
@@ -152,34 +206,29 @@ def tmp_fact(controler_with_logging, fact):
 
 @pytest.fixture
 def invalid_tmp_fact(tmpdir, client_config):
+    """Fixture to provide a *ongoing fact* file that contains an invalid object instance."""
     with open(client_config['tmp_filename'], 'wb') as fobj:
         pickle.dump(None, fobj)
 
 
 @pytest.yield_fixture
 def controler(lib_config, client_config):
+    """Provide a pseudo controler instance."""
     controler = hamsterlib.HamsterControl(lib_config)
     controler.client_config = client_config
     yield controler
-    if os.path.isfile(os.path.join(client_config['work_dir'],
-            lib_config['tmpfile_name'])):
-        os.remove(os.path.join(client_config['work_dir'],
-            lib_config['tmpfile_name']))
     controler.store.cleanup()
 
 
 @pytest.yield_fixture
 def controler_with_logging(lib_config, client_config):
+    """Provide a pseudo controler instance with logging setup."""
     controler = hamsterlib.HamsterControl(lib_config)
     controler.client_config = client_config
     # [FIXME]
     # We souldn't shortcut like this!
     hamster_cli._setup_logging(controler)
     yield controler
-    if os.path.isfile(os.path.join(client_config['work_dir'],
-            lib_config['tmpfile_name'])):
-        os.remove(os.path.join(client_config['work_dir'],
-            lib_config['tmpfile_name']))
     controler.store.cleanup()
 
 
@@ -211,4 +260,5 @@ def controler_with_logging(lib_config, client_config):
     }),
 ])
 def search_parameter_parametrized(request):
+    """Provide a parametrized set of arguments for the ``search`` command."""
     return request.param

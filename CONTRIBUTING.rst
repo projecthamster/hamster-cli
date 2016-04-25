@@ -66,7 +66,7 @@ Ready to contribute? Here's how to set up `hamster_cli` for local development.
 
     $ mkvirtualenv hamster_cli
     $ cd hamster_cli/
-    $ python setup.py develop
+    $ make develop
 
 4. Create a branch for local development::
 
@@ -76,9 +76,7 @@ Ready to contribute? Here's how to set up `hamster_cli` for local development.
 
 5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox::
 
-    $ flake8 hamster_cli tests
-    $ python setup.py test
-    $ tox
+    $ make test-all
 
    To get flake8 and tox, just pip install them into your virtualenv.
 
@@ -99,8 +97,8 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.6, 2.7, 3.3, and 3.4, and for PyPy. Check
-   https://travis-ci.org/elbenfreund/hamster_cli/pull_requests
+3. The pull request should work for Python 2.6, 2.7, 3.3, and 3.4, and for
+   PyPy. Check https://travis-ci.org/elbenfreund/hamster_cli/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
 Tips
@@ -108,4 +106,19 @@ Tips
 
 To run a subset of tests::
 
-    $ python -m unittest tests.test_hamster_cli
+    $ make test TEST_ARGS="-k NAME_OF_TEST_OR_SUB_MODULE"
+
+or if you just want to run a particular tox environment::
+
+    $ tox -e NAMEOVENVORONMENT
+
+If you want to play around with an executeable version of you modified client::
+
+    $ cd PATH_TO_CLONED_REPOSITORY
+    $ mkvirtualenv NAME_OF_SANDBOX_ENV
+    $ pip install -e .
+
+This will install your WIP hamster-cli in a wroking state into your sandbox.
+Any changes to the codebase will be applied by that version right away. Please
+not that any files created by the client will persist even if you uninstall it
+or delete the virtualenv.
