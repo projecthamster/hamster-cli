@@ -93,13 +93,6 @@ class TestLicense(object):
         result = runner(['license'])
         assert result.exit_code == 0
 
-    def test_license_is_shown(self, runner):
-        """Make sure the license text is actually displayed."""
-        result = runner(['license'])
-        assert "'hamster_cli' is free software" in result.output
-        assert "GNU General Public License" in result.output
-        assert "version 3" in result.output
-
 
 class TestDetails(object):
     """Make sure command works as expected."""
