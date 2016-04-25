@@ -304,7 +304,7 @@ def _stop(controler):
         ValueError: If no *ongoing fact* can be found.
     """
     try:
-        controler.facts.stop_tmp_fact()
+        fact = controler.facts.stop_tmp_fact()
     except ValueError:
         message = _(
             "Unable to continue temporary fact. Are you sure there is one?"
@@ -312,8 +312,9 @@ def _stop(controler):
         )
         raise click.ClickException(message)
     else:
-        controler.client_logger.info(_("Temporary fact stoped."))
-        click.echo(_("Temporary fact stoped!"))
+        message = '{fact} ({duration} minutes)'.format(fact=fact, duration=fact.get_string_delta())
+        controler.client_logger.info(_(message))
+        click.echo(_(message))
 
 
 @run.command(help=help_strings.CANCEL_HELP)
