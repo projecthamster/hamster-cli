@@ -15,36 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with 'hamster_cli'.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-A time tracker for the command line. Utilizing the power of hamsterlib.
+"""A time tracker for the command line. Utilizing the power of hamsterlib."""
 
-The rough idea of the original CLI was that it allows to start a Fact and then,
-at some later point one would stop the "current" activity.
-On top of that it realy then is just some listing/exporting capabilities.
 
-The main tasks of this CLI are twofold:
-    1. Provide a structured and solid config to be handed over to the backend.
-    2. Provide a clean interface that includes some basic input validation before
-        calling upon ``hamsterlib`` to do the heavy lifting.
-
-  To promote cleanness and seperation of concens we split the actual command
-    invocation and its click-integration from the logic ctriggered by that
-    that command. This has the added benefit of a clear seperation of unit and
-    integration tests.
-
-    * For information about unicode handling, see:
-        http://click.pocoo.org/6/python3/#python3-surrogates This should be alright for
-        our usecase, as any properly user environment should have its unicode locale declared.
-        And if not, its acceptable to bully the user to do so.
-
-    * Click commands deal only with strings. So quite often, the first thing our
-        custom command-functions will do is provide some basic type conversion and
-        error checking. before calling the corresponding lib method.
-    * Whilst the backend usualy either returns results or Errors, the client should
-        always try to handle those errors which are predictable and turn them into user
-        relevant command line output. Only actual errors that are not part of the expected
-        user interaction shall get through as exceptions.
-"""
 from __future__ import absolute_import, unicode_literals
 
 import datetime
@@ -62,6 +35,8 @@ import hamsterlib
 from backports.configparser import SafeConfigParser
 from hamsterlib import Fact, HamsterControl, helpers, reports
 from tabulate import tabulate
+
+from . import help_strings
 
 
 class HamsterAppDirs(appdirs.AppDirs):
@@ -157,10 +132,10 @@ AppDirs = HamsterAppDirs('hamster_cli')
 pass_controler = click.make_pass_decorator(Controler, ensure=True)
 
 
-@click.group()
+@click.group(help=help_strings.RUN_HELP)
 @pass_controler
 def run(controler):
-    """General context provider. Is triggered on all command calls."""
+    """General context run right before any of the commands."""
     _run(controler)
 
 
@@ -169,34 +144,36 @@ def _run(controler):
     _setup_logging(controler)
 
 
-@run.command()
+@run.command(help=help_strings.SEARCH_HELP)
 @click.argument('search_term')
 @click.argument('time_range', default='')
 @pass_controler
 def search(controler, search_term, time_range):
-    """
-    Search facts maching given timerange and search term. Both are optional.
-
-    Matching facts will be printed in a tabular representation.
-
-    Args:
-        search_term: Term that need to be matched by the fact in order to be considered a hit.
-        time_range (optional): Only fact within this timerange will be considered.
-
-    """
+    """Fetch facts matching certain criteria."""
+    # [FIXME]
+    # Check what we actually match against.
     _search(controler, search_term, time_range)
 
 
 def _search(controler, search_term, time_range):
     """
-    Refer to ``search`` for general information.
+    Search facts machting given timerange and search term. Both are optional.
+
+    Matching facts will be printed in a tabular representation.
 
     Make sure that arguments are converted into apropiate types before passing
     them on to the backend.
 
     We leave it to the backend to first parse the timeinfo and then complete any
     missing data based on the passed config settings.
+
+    Args:
+        search_term: Term that need to be matched by the fact in order to be considered a hit.
+        time_range: Only facts within this timerange will be considered.
     """
+    # [FIXME]
+    # As far as our backend is concerned search_term as well as time range are
+    # optional. If the same is true for legacy hamster-cli needs to be checked.
     if not time_range:
         start, end = (None, None)
     else:
@@ -209,38 +186,21 @@ def _search(controler, search_term, time_range):
     click.echo(tabulate(table, headers=headers))
 
 
-@run.command()
+@run.command(help=help_strings.LIST_HELP)
 @click.argument('time_range', default='')
 @pass_controler
 def list(controler, time_range):
-    """
-    List facts within a date range.
-
-    Matching facts will be printed in a tabular representation.
-
-    Args:
-        time_range (optional): Only fact within this timerange will be considered.
-
-    Note:
-        * This is effectivly just a specical version of `search`
-    """
+    """List all facts within a timerange."""
     _search(controler, search_term='', time_range=time_range)
 
 
-@run.command()
+@run.command(help=help_strings.START_HELP)
 @click.argument('raw_fact')
 @click.argument('start', default='')
 @click.argument('end', default='')
 @pass_controler
 def start(controler, raw_fact, start, end):
-    """Start or add a fact.
-
-    Args:
-        raw_fact: ``raw_fact`` containing information about the Fact to be started. As an absolute
-            minimum this must be a string representing the 'activityname'.
-        start (optional): When does the fact start?
-        end (optional): When does the fact end?
-    """
+    """Start or add a fact."""
     # [FIXME]
     # The original semantics do not work anymore. As we make a clear difference
     # between *adding* a (complete) fact and *starting* a (ongoing) fact.
@@ -250,7 +210,16 @@ def start(controler, raw_fact, start, end):
 
 def _start(controler, raw_fact, start, end):
     """
-    See `start` for details.
+    Start or add a fact.
+
+    Args:
+        raw_fact: ``raw_fact`` containing information about the Fact to be started. As an absolute
+            minimum this must be a string representing the 'activityname'.
+        start (optional): When does the fact start?
+        end (optional): When does the fact end?
+
+    Returns:
+        None: If everything went alright.
 
     Note:
         * Whilst it is possible to pass timeinformation as part of the ``raw_fact`` as
@@ -315,19 +284,23 @@ def _start(controler, raw_fact, start, end):
     fact = controler.facts.save(fact)
 
 
-@run.command()
+@run.command(help=help_strings.STOP_HELP)
 @pass_controler
 def stop(controler):
-    """
-    Stop tracking current fact. Saving the result.
-
-    Provide a confirmation/failure message to the user.
-    """
+    """Stop tracking current fact. Saving the result."""
     _stop(controler)
 
 
 def _stop(controler):
-    """Stop cucrrent 'ongoing fact' and save it to the backend. See ``stop`` for details."""
+    """
+    Stop cucrrent 'ongoing fact' and save it to the backend.
+
+    Returns:
+        None: If successful.
+
+    Raises:
+        ValueError: If no *ongoing fact* can be found.
+    """
     try:
         controler.facts.stop_tmp_fact()
     except ValueError:
@@ -341,19 +314,23 @@ def _stop(controler):
         click.echo(_("Temporary fact stoped!"))
 
 
-@run.command()
+@run.command(help=help_strings.CANCEL_HELP)
 @pass_controler
 def cancel(controler):
-    """
-    Cancel 'ongoing fact'. E.g stop it without storing in the backend.
-
-    Provide a confirmation/failure message to the user.
-    """
+    """Cancel 'ongoing fact'. E.g stop it without storing in the backend."""
     _cancel(controler)
 
 
 def _cancel(controler):
-    """Cancel tracking current temporary fact, discaring the result."""
+    """
+    Cancel tracking current temporary fact, discaring the result.
+
+    Returns:
+        None: If success.
+
+    Raises:
+        KeyErŕor: No *ongoing fact* can be found.
+    """
     try:
         controler.facts.cancel_tmp_fact()
     except KeyError:
@@ -366,21 +343,13 @@ def _cancel(controler):
         controler.client_logger.debug(message)
 
 
-@run.command()
+@run.command(help=help_strings.EXPORT_HELP)
 @click.argument('format', nargs=1, default='csv')
 @click.argument('start', nargs=1, default='')
 @click.argument('end', nargs=1, default='')
 @pass_controler
 def export(controler, format, start, end):
-    """
-    Export all facts of within a given timewindow to a file of specified format.
-
-    Args:
-        format (optional): Export format. Currently supported options are: ``csv`` and ``ical``.
-            Defaults to ``csv``.
-        start (optional): Start of timewindow. Defaults to ``empty string``.
-        end (optional): End of timewindow. Defaults to ``empty string``.
-    """
+    """Export all facts of within a given timewindow to a file of specified format."""
     _export(controler, format, start, end)
 
 
@@ -389,7 +358,7 @@ def _export(controler, format, start, end):
     Export all facts in the given timeframe in the format specified.
 
     Args:
-        format (str): Format to export to. Valid options are: ``csv`` and ``ical``.
+        format (str): Format to export to. Valid options are: ``csv``, ``xml`` and ``ical``.
         start (datetime.datetime): Consider only facts starting at this time or later.
         end (datetime.datetime): Consider only facts starting no later than this time.
 
@@ -428,20 +397,20 @@ def _export(controler, format, start, end):
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
 
 
-@run.command()
+@run.command(help=help_strings.CATEGORIES_HELP)
 @pass_controler
 def categories(controler):
-    """
-    List all existing categories, ordered by name.
-
-    Note:
-        * Propabbly better as a sub command to list?
-    """
+    """List all existing categories, ordered by name."""
     _categories(controler)
 
 
 def _categories(controler):
-    """For details, refer to ``categories``."""
+    """
+    List all existing categories, ordered by name.
+
+    Returns:
+        None: If success.
+    """
     result = controler.categories.get_all()
     # [TODO]
     # Provide nicer looking tabulated output.
@@ -449,10 +418,10 @@ def _categories(controler):
         click.echo(category.name)
 
 
-@run.command()
+@run.command(help=help_strings.CURRENT_HELP)
 @pass_controler
 def current(controler):
-    """Display current tmp fact."""
+    """Display current *ongoing fact*."""
     _current(controler)
 
 
@@ -478,24 +447,24 @@ def _current(controler):
         click.echo(fact)
 
 
-@run.command()
+@run.command(help=help_strings.ACTIVITIES_HELP)
 @click.argument('search_term', default='')
 @pass_controler
 def activities(controler, search_term):
-    """
-    List all activits. Provide optional filtering by name.
-
-    Prints all matching activities one per line.
-
-    Args:
-        search (optional): String to be matched against activity name.
-
-    """
+    """List all activities. Provide optional filtering by name."""
     _activities(controler, search_term)
 
 
 def _activities(controler, search_term):
-    """For details see ``activities``."""
+    """
+    List all activities. Provide optional filtering by name.
+
+    Args:
+        search_term (str): String to match ``Activity.name`` against.
+
+    Returns:
+        None: If success.
+    """
     result = controler.activities.get_all(search_term=search_term)
     table = []
     headers = (_("Activity"), _("Category"))
@@ -527,7 +496,7 @@ def about():
     _launch_window('about')
 
 
-@run.command()
+@run.command(help=help_strings.LICENSE_HELP)
 def license():
     """Show license information."""
     license = """
@@ -547,7 +516,7 @@ def license():
     click.echo(license)
 
 
-@run.command()
+@run.command(help=help_strings.DETAILS_HELP)
 @pass_controler
 def details(controler):
     """List details about the runtime environment."""
