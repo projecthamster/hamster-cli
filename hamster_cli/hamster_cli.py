@@ -504,6 +504,11 @@ def license():
 @pass_controler
 def details(controler):
     """List details about the runtime environment."""
+    _details(controler)
+
+
+def _details(controler):
+    """List details about the runtime environment."""
     def get_db_info():
         result = None
 

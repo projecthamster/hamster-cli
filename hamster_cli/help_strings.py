@@ -3,7 +3,6 @@
 
 from gettext import gettext as _
 
-
 RUN_HELP = _(
     """
     'hamster-cli' is a time tracker for the command line.

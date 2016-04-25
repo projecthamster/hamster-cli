@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-from hamster_cli import __appname__, __version__
-
 
 class TestBasicRun(object):
     def test_basic_run(self, runner):
@@ -110,41 +108,3 @@ class TestDetails(object):
         """Make sure command launches without exception."""
         result = runner(['details'])
         assert result.exit_code == 0
-
-    def test_details_general_data_is_shown(self, runner):
-        """Make sure user recieves the desired output."""
-        result = runner(['details'])
-        assert __appname__ in result.output
-        assert __version__ in result.output
-        assert 'Configuration' in result.output
-        assert 'Logfile' in result.output
-        assert 'Reports' in result.output
-
-    def test_details_sqlite(self, runner, appdirs, mocker, get_config_file):
-        """Make sure database details for sqlite are shown properly."""
-        mocker.patch('hamsterlib.lib.HamsterControl._get_store')
-        engine, path = 'sqlite', appdirs.user_data_dir
-        get_config_file(db_engine=engine, db_path=path)
-        result = runner(['details'])
-        assert engine in result.output
-        assert path in result. output
-
-    def test_details_non_sqlite(self, runner, get_config_file, db_port, db_host, db_name,
-            db_user, db_password, mocker):
-        """
-        Make sure database details for non-sqlite are shown properly.
-
-        We need to mock the backend Controler because it would try to setup a
-        database connection right away otherwise.
-        """
-        mocker.patch('hamsterlib.lib.HamsterControl._get_store')
-        get_config_file(db_engine='postgres', db_name=db_name, db_host=db_host,
-            db_user=db_user, db_password=db_password, db_port=db_port)
-        result = runner(['details'])
-        assert 'postgres' in result.output
-        assert db_host in result.output
-        assert db_name in result.output
-        assert db_user in result.output
-        assert db_password not in result.output
-        if db_port:
-            assert db_port in result.output

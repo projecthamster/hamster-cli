@@ -14,7 +14,7 @@ from backports.configparser import SafeConfigParser
 from click import ClickException
 from freezegun import freeze_time
 
-from hamster_cli import hamster_cli
+from hamster_cli import __appname__, __version__, hamster_cli
 
 
 class TestSearch(object):
@@ -237,6 +237,52 @@ class TestActivities(object):
         controler.activities.get_all.assert_called_with(search_term='foobar')
         assert activity.name in out
         assert activity.category.name in out
+
+
+class TestDetails(object):
+    """Unittests for the ``details`` command."""
+
+    def test_details_general_data_is_shown(self, controler, capsys):
+        """Make sure user recieves the desired output."""
+        hamster_cli._details(controler)
+        out, err = capsys.readouterr()
+        strings = (__appname__, __version__, 'Configuration', 'Logfile', 'Reports')
+        for string in strings:
+            assert string in out
+
+    def test_details_sqlite(self, controler, appdirs, mocker, capsys):
+        """Make sure database details for sqlite are shown properly."""
+        controler._get_store = mocker.MagicMock()
+        engine, path = 'sqlite', appdirs.user_data_dir
+        controler.config['db_engine'] = engine
+        controler.config['db_path'] = path
+        hamster_cli._details(controler)
+        out, err = capsys.readouterr()
+        for item in (engine, path):
+            assert item in out
+
+    def test_details_non_sqlite(self, controler, capsys, db_port, db_host, db_name,
+            db_user, db_password, mocker):
+        """
+        Make sure database details for non-sqlite are shown properly.
+
+        We need to mock the backend Controler because it would try to setup a
+        database connection right away otherwise.
+        """
+        controler._get_store = mocker.MagicMock()
+        controler.config['db_engine'] = 'postgres'
+        controler.config['db_name'] = db_name
+        controler.config['db_host'] = db_host
+        controler.config['db_user'] = db_user
+        controler.config['db_password'] = db_password
+        controler.config['db_port'] = db_port
+        hamster_cli._details(controler)
+        out, err = capsys.readouterr()
+        for item in ('postgres', db_host, db_name, db_user):
+            assert item in out
+        if db_port:
+            assert db_port in out
+        assert db_password not in out
 
 
 class TestSetupLogging(object):
