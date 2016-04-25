@@ -446,7 +446,9 @@ def _current(controler):
         )
         raise click.ClickException(message)
     else:
-        click.echo(fact)
+        fact.end = datetime.datetime.now()
+        string = '{fact} ({duration} minutes)'.format(fact=fact, duration=fact.get_string_delta())
+        click.echo(string)
 
 
 @run.command(help=help_strings.ACTIVITIES_HELP)
