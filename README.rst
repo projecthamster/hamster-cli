@@ -33,16 +33,18 @@ things work as intended we make no promisse about your data as well as any
 commitment. In particular there is no intension to migrate any databases from
 this version to any future more mature release.
 
-News (2016-04-16)
+News (2016-04-25)
 -----------------
-Version 0.11.0 has been release. This is a major step forward as our previous
-release was rushed and turned out to be not too usable at all. This release
-provides a solid and robust way to handle user configs as well as providing a
-default config setup. We further increased our test coverage and are well above
-90% by now. Including some basic integration tests.
-For more details, see the changelog.
+Version 0.12.0 is out! With this version we feel confident that you may be able
+to actually play with ``hamster-cli`` in a somewhat productive way. Whilst we
+are still far from being production ready and miss a significant amount of
+legacy feature this release may give you quite the idea where we are heading.
+For the first time we were able to give the frontend some love whilst further
+beefin up our QA toolchain, introducing even more tests and new test
+environments. The documentation has been vastly improved, digging into the code
+never was easier.
 
-Have fun tinkering, Eric.
+Happy hacking; Eric.
 
 Features
 --------
