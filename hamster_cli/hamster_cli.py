@@ -480,24 +480,6 @@ def _activities(controler, search_term):
     click.echo(tabulate(table, headers=headers))
 
 
-@run.command()
-def overview():
-    """Show overview window."""
-    _launch_window('overview')
-
-
-@run.command()
-def statistics():
-    """Show statistics window."""
-    _launch_window('statistics')
-
-
-@run.command()
-def about():
-    """Show about window."""
-    _launch_window('about')
-
-
 @run.command(help=help_strings.LICENSE_HELP)
 def license():
     """Show license information."""
@@ -584,11 +566,6 @@ def _setup_logging(controler):
         file_handler.setFormatter(formatter)
         lib_logger.addHandler(file_handler)
         client_logger.addHandler(file_handler)
-
-
-def _launch_window(window_type):
-    """If ``hamster_gtk`` as well as ``dbus`` are present, launch the given window."""
-    raise NotImplementedError
 
 
 def _get_config(config_instance):

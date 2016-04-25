@@ -87,30 +87,6 @@ class TestActivities(object):
         assert result.exit_code == 0
 
 
-class TestOverview(object):
-    def test_overview(self, runner):
-        """Make sure that invoking the command passes without exception."""
-        result = runner(['overview'])
-        assert 'Error' not in result.output
-        assert result.exit_code == -1
-
-
-class TestStatistics(object):
-    def test_statistics(self, runner):
-        """Make sure that invoking the command passes without exception."""
-        result = runner(['statistics'])
-        assert 'Error' not in result.output
-        assert result.exit_code == -1
-
-
-class TestAbout(object):
-    def test_about(self, runner):
-        """Make sure that invoking the command passes without exception."""
-        result = runner(['about'])
-        assert 'Error' not in result.output
-        assert result.exit_code == -1
-
-
 class TestLicense(object):
     """Make sure command works as expected."""
 
