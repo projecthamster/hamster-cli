@@ -5,7 +5,7 @@ import logging
 import os
 
 import fauxfactory
-import hamsterlib
+import hamster_lib
 import pytest
 # Once we drop py2 support, we can use the builtin again but unicode support
 # under python 2 is practicly non existing and manual encoding is not easily
@@ -32,6 +32,7 @@ class TestSearch(object):
 class TestStart(object):
     """Unit test related to starting a new fact."""
 
+    @freeze_time('2015-12-25 18:00')
     @pytest.mark.parametrize(('raw_fact', 'start', 'end', 'expectation'), [
         ('foo@bar', '2015-12-12 13:00', '2015-12-12 16:30', {
             'activity': 'foo',
@@ -39,7 +40,7 @@ class TestStart(object):
             'start': datetime.datetime(2015, 12, 12, 13, 0, 0),
             'end': datetime.datetime(2015, 12, 12, 16, 30, 0),
         }),
-        ('10:00-18:00 foo@bar', '2015-12-12 13:00', '', {
+        ('10:00 - 18:00 foo@bar', '2015-12-12 13:00', '', {
             'activity': 'foo',
             'category': 'bar',
             'start': datetime.datetime(2015, 12, 12, 13, 0, 0),
@@ -59,7 +60,6 @@ class TestStart(object):
             'end': None,
         }),
     ])
-    @freeze_time('2015-12-25 18:00')
     def test_start_add_new_fact(self, controler_with_logging, mocker, raw_fact,
             start, end, expectation):
         """
@@ -127,28 +127,29 @@ class TestExport(object):
 
     def test_csv(self, controler, controler_with_logging, mocker):
         """Make sure that a valid format returns the apropiate writer class."""
-        hamsterlib.reports.TSVWriter = mocker.MagicMock()
+        hamster_lib.reports.TSVWriter = mocker.MagicMock()
         hamster_cli._export(controler, 'csv', None, None)
-        assert hamsterlib.reports.TSVWriter.called
+        assert hamster_lib.reports.TSVWriter.called
 
     def test_ical(self, controler, controler_with_logging, mocker):
         """Make sure that a valid format returns the apropiate writer class."""
-        hamsterlib.reports.ICALWriter = mocker.MagicMock()
+        hamster_lib.reports.ICALWriter = mocker.MagicMock()
         hamster_cli._export(controler, 'ical', None, None)
-        assert hamsterlib.reports.ICALWriter.called
+        assert hamster_lib.reports.ICALWriter.called
 
     def test_xml(self, controler, controler_with_logging, mocker):
         """Make sure that passing 'xml' as format parameter returns the apropiate writer class."""
-        hamsterlib.reports.XMLWriter = mocker.MagicMock()
+        hamster_lib.reports.XMLWriter = mocker.MagicMock()
         hamster_cli._export(controler, 'xml', None, None)
-        assert hamsterlib.reports.XMLWriter.called
+        assert hamster_lib.reports.XMLWriter.called
 
     def test_with_start(self, controler, controler_with_logging, tmpdir, mocker):
         """Make sure that passing a end date is passed to the fact gathering method."""
         controler.facts.get_all = mocker.MagicMock()
         path = os.path.join(tmpdir.mkdir('report').strpath, 'report.csv')
-        hamsterlib.reports.TSVWriter = mocker.MagicMock(return_value=hamsterlib.reports.TSVWriter(
-            path))
+        hamster_lib.reports.TSVWriter = mocker.MagicMock(
+            return_value=hamster_lib.reports.TSVWriter(path)
+        )
         start = fauxfactory.gen_datetime()
         hamster_cli._export(controler, 'csv', start, None)
         args, kwargs = controler.facts.get_all.call_args
@@ -158,8 +159,9 @@ class TestExport(object):
         """Make sure that passing a end date is passed to the fact gathering method."""
         controler.facts.get_all = mocker.MagicMock()
         path = os.path.join(tmpdir.mkdir('report').strpath, 'report.csv')
-        hamsterlib.reports.TSVWriter = mocker.MagicMock(return_value=hamsterlib.reports.TSVWriter(
-            path))
+        hamster_lib.reports.TSVWriter = mocker.MagicMock(
+            return_value=hamster_lib.reports.TSVWriter(path)
+        )
         end = fauxfactory.gen_datetime()
         hamster_cli._export(controler, 'csv', None, end)
         args, kwargs = controler.facts.get_all.call_args

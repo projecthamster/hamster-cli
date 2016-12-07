@@ -8,8 +8,8 @@ hamster_cli
 .. image:: https://img.shields.io/travis/elbenfreund/hamster_cli/master.svg
         :target: https://travis-ci.org/elbenfreund/hamster_cli
 
-.. image:: https://img.shields.io/codecov/c/github/elbenfreund/hamster_cli/master.svg
-        :target: https://codecov.io/github/elbenfreund/hamster_cli
+.. image:: https://img.shields.io/codecov/c/gh/projecthamster/hamster_cli/master.svg
+        :target: https://codecov.io/gh/projecthamster/hamster-cli
 
 .. image:: https://readthedocs.org/projects/hamst-cli/badge/?version=master
         :target: https://readthedocs.org/projects/hamst-cli/badge/?version=master

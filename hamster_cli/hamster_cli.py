@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with 'hamster_cli'.  If not, see <http://www.gnu.org/licenses/>.
 
-"""A time tracker for the command line. Utilizing the power of hamsterlib."""
+"""A time tracker for the command line. Utilizing the power of hamster-lib."""
 
 
 from __future__ import absolute_import, unicode_literals
@@ -28,12 +28,13 @@ from gettext import gettext as _
 
 import appdirs
 import click
-import hamsterlib
+import hamster_lib
 # Once we drop py2 support, we can use the builtin again but unicode support
 # under python 2 is practicly non existing and manual encoding is not easily
 # possible.
 from backports.configparser import SafeConfigParser
-from hamsterlib import Fact, HamsterControl, helpers, reports
+from hamster_lib import Fact, HamsterControl, reports
+from hamster_lib.helpers import time as time_helpers
 from tabulate import tabulate
 
 from . import help_strings
@@ -179,8 +180,17 @@ def _search(controler, search_term, time_range):
     if not time_range:
         start, end = (None, None)
     else:
-        start, end = helpers.complete_timeframe(helpers.parse_time_range(time_range),
-            controler.config)
+        # [FIXME]
+        # This is a rather crude fix. Recent versions of ``hamster-lib`` do not
+        # provide a dedicated helper to parse *just* time(ranges) but expect a
+        # ``raw_fact`` text. In order to work around this we just append
+        # whitespaces to our time range argument which will qualify for the
+        # desired parsing.
+        # Once raw_fact/time parsing has been refactored in hamster-lib, this
+        # should no longer be needed.
+        time_range = time_range + '  '
+        timeinfo = time_helpers.extract_time_info(time_range)[0]
+        start, end = time_helpers.complete_timeframe(timeinfo, controler.config)
 
     results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
 
@@ -231,9 +241,9 @@ def _start(controler, raw_fact, start, end):
     fact = Fact.create_from_raw_fact(raw_fact)
     # Explicit trumps implicit!
     if start:
-        fact.start = helpers.parse_time(start)
+        fact.start = time_helpers.parse_time(start)
     if end:
-        fact.end = helpers.parse_time(end)
+        fact.end = time_helpers.parse_time(end)
 
     if not fact.end:
         # We seem to want to start a new tmp fact
@@ -269,9 +279,9 @@ def _start(controler, raw_fact, start, end):
             end_date = fact.end.date()
             end_time = fact.end.time()
 
-        timeframe = helpers.TimeFrame(
+        timeframe = time_helpers.TimeFrame(
             fact.start.date(), fact.start.time(), end_date, end_time, None)
-        fact.start, fact.end = helpers.complete_timeframe(timeframe, controler.config)
+        fact.start, fact.end = time_helpers.complete_timeframe(timeframe, controler.config)
 
     if tmp_fact:
         # Quick fix for tmp facts. that way we can use the default helper
@@ -373,7 +383,7 @@ def _export(controler, format, start, end):
     """
     accepted_formats = ['csv', 'ical', 'xml']
     # [TODO]
-    # Once hamsterlib has a proper 'export' register available we should be able
+    # Once hamster_lib has a proper 'export' register available we should be able
     # to streamline this.
     if format not in accepted_formats:
         message = _("Unrecocgnized export format recieved")
@@ -669,7 +679,7 @@ def _get_config(config_instance):
 
         def get_store():
             store = config.get('Backend', 'store')
-            if store not in hamsterlib.lib.REGISTERED_BACKENDS.keys():
+            if store not in hamster_lib.lib.REGISTERED_BACKENDS.keys():
                 raise ValueError(_("Unrecognized store option."))
             return store
 

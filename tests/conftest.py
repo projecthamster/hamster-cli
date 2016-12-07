@@ -14,7 +14,7 @@ import os
 import pickle as pickle
 
 import fauxfactory
-import hamsterlib
+import hamster_lib
 import pytest
 # Once we drop py2 support, we can use the builtin again but unicode support
 # under python 2 is practicly non existing and manual encoding is not easily
@@ -214,7 +214,7 @@ def invalid_tmp_fact(tmpdir, client_config):
 @pytest.yield_fixture
 def controler(lib_config, client_config):
     """Provide a pseudo controler instance."""
-    controler = hamsterlib.HamsterControl(lib_config)
+    controler = hamster_lib.HamsterControl(lib_config)
     controler.client_config = client_config
     yield controler
     controler.store.cleanup()
@@ -223,7 +223,7 @@ def controler(lib_config, client_config):
 @pytest.yield_fixture
 def controler_with_logging(lib_config, client_config):
     """Provide a pseudo controler instance with logging setup."""
-    controler = hamsterlib.HamsterControl(lib_config)
+    controler = hamster_lib.HamsterControl(lib_config)
     controler.client_config = client_config
     # [FIXME]
     # We souldn't shortcut like this!
@@ -238,7 +238,7 @@ def controler_with_logging(lib_config, client_config):
         'start': None,
         'end': None,
     }),
-    ('', '2015-12-12 18:00 2015-12-12 19:30', {
+    ('', '2015-12-12 18:00 - 2015-12-12 19:30', {
         'filter_term': '',
         'start': datetime.datetime(2015, 12, 12, 18, 0, 0),
         'end': datetime.datetime(2015, 12, 12, 19, 30, 0)
