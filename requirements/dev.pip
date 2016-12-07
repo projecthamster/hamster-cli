@@ -1,7 +1,7 @@
 # This file specifies all packages required for local development
 
--r ./docs.txt
--r ./test.txt
+-r ./docs.pip
+-r ./test.pip
 
 bumpversion==0.5.3
 ipython==4.2.0
