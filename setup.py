@@ -18,7 +18,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'appdirs',
     'Click',
-    'hamsterlib >= 0.1.0',
+    'hamster-lib',
     'tabulate',
     # py27 compatibility related
     'six',
