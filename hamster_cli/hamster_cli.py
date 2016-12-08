@@ -298,7 +298,7 @@ def _start(controler, raw_fact, start, end):
 
 @run.command(help=help_strings.STOP_HELP)
 @click.option('--end', nargs=1, default=None, help=_(
-    "Specify an end date other than *now* ('%Y-%m-%d')"))
+    "Specify an end time other than *now* ('H:M)"))
 @pass_controler
 def stop(controler, end):
     """Stop tracking current fact. Saving the result."""
@@ -320,11 +320,13 @@ def _stop(controler, end=None):
         ValueError: If ``--end`` was passed but can not be recognized.
     """
     if end:
-        end_time = datetime.datetime.strptime(end, '%Y-%m-%d').time
+        end_time = datetime.datetime.strptime(end, '%H:%M').time()
         end = datetime.datetime.combine(datetime.date.today(), end_time)
+    else:
+        end = None
 
     try:
-        fact = controler.facts.stop_tmp_fact()
+        fact = controler.facts.stop_tmp_fact(end_hint=end)
     except ValueError:
         message = _(
             "Unable to continue temporary fact. Are you sure there is one?"
