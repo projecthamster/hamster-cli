@@ -60,6 +60,35 @@ Resources
 -----------
 * `Documentation <https://hamst-cli.readthedocs.org/en/master/>`_
 
+
+Usage
+-----------
+
+ * /usr/bin/hamster-cli start ACTIVITY [START_TIME[-END_TIME]]
+ * /usr/bin/hamster-cli stop
+ * /usr/bin/hamster-cli list [START_TIME[-END_TIME]]
+
+Actions:
+    * start (default): Start tracking an activity.
+    * stop: Stop tracking current activity.
+    * list: List activities.
+    * list-activities: List all the activities names, one per line.
+    * list-categories: List all the categories names, one per line.
+
+Time formats:
+
+'YYYY-MM-DD hh:mm:ss': Absolute time. Defaulting to 0 for the time values missing, and current day for date values. E.g. (considering 2010-03-09 16:30:20 as current date, time):
+
+   * 2010-03 13:15:40 is 2010-03-09 13:15:40
+   * 2010-03-09 13:15 is 2010-03-09 13:15:00
+   * 2010-03-09 13    is 2010-03-09 00:13:00
+   * 2010-02 13:15:40 is 2010-02-09 13:15:40
+   * 13:20            is 2010-03-09 13:20:00
+   * 20               is 2010-03-09 00:20:00
+
+'-hh:mm:ss': Relative time. From the current date and time. Defaulting to 0 for the time values missing, same as in absolute time.
+
+
 Credits
 ---------
 Tools used in rendering this package:
