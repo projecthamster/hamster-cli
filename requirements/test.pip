@@ -1,7 +1,7 @@
 # This file is used for local testing with and without tox as well as for
 # testing on the CI servers.
 
-coverage==4.2
+coverage==4.3
 fauxfactory==2.0.9
 isort==4.2.5
 pytest==3.0.5
