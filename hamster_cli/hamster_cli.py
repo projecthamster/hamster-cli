@@ -822,11 +822,12 @@ def _generate_facts_table(facts):
         'end': _("End"),
         'activity': _("Activity"),
         'category': _("Category"),
+        'tags': _("Tags"),
         'description': _("Description"),
         'delta': _("Duration")
     }
 
-    columns = ('start', 'end', 'activity', 'category', 'description',
+    columns = ('start', 'end', 'activity', 'category', 'tags', 'description',
         'delta')
 
     header = [headers[column] for column in columns]
@@ -840,10 +841,17 @@ def _generate_facts_table(facts):
         else:
             category = ''
 
+        if fact.tags:
+            tags = '#'
+            tags += '#'.join(sorted([x.name + ' ' for x in fact.tags]))
+        else:
+            tags = ''
+
         table.append(TableRow(
             activity=fact.activity.name,
             category=category,
             description=fact.description,
+            tags=tags,
             start=fact.start.strftime('%Y-%m-%d %H:%M'),
             end=fact.end.strftime('%Y-%m-%d %H:%M'),
             # [TODO]
