@@ -39,6 +39,9 @@ from tabulate import tabulate
 
 from . import help_strings
 
+# Disable the python_2_unicode_compatible future import warning.
+click.disable_unicode_literals_warning = True
+
 
 class HamsterAppDirs(appdirs.AppDirs):
     """Custom class that ensure appdirs exist."""
@@ -322,7 +325,11 @@ def _stop(controler):
         )
         raise click.ClickException(message)
     else:
-        message = '{fact} ({duration} minutes)'.format(fact=fact, duration=fact.get_string_delta())
+        #message = '{fact} ({duration} minutes)'.format(fact=str(fact), duration=fact.get_string_delta())
+        start = fact.start.strftime("%Y-%m-%d %H:%M")
+        end = fact.end.strftime("%Y-%m-%d %H:%M")
+        fact_string = u'{0:s} to {1:s} {2:s}@{3:s}'.format(start, end, fact.activity.name, fact.category.name)
+        message = "Stopped {fact} ({duration} minutes).".format(fact = fact_string,duration = fact.get_string_delta())
         controler.client_logger.info(_(message))
         click.echo(_(message))
 
