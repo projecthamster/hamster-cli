@@ -153,20 +153,24 @@ def _run(controler):
 
 
 @run.command(help=help_strings.SEARCH_HELP)
-@click.argument('time_range', default='')
+#@click.argument('time_range', default='')
+@click.option('-s', '--start', help = 'The start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The end time string (e.g. "2017-02-01 00:00").')
 @click.option('-a', '--activity', help = "The search string applied to activity names.")
 @click.option('-c', '--category', help = "The search string applied to category names.")
 @click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
 @click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
 @pass_controler
-def search(controler, activity, category, time_range, tag, description):
+def search(controler, start, end, activity, category, tag, description):
     """Fetch facts matching certain criteria."""
     # [FIXME]
     # Check what we actually match against.
-    _search(controler, activity, category, time_range, tag, description)
+    results = _search(controler, start, end, activity, category, tag, description)
+    table, headers = _generate_facts_table(results)
+    click.echo(tabulate(table, headers=headers))
 
 
-def _search(controler, time_range, activity = None, category = None, tag = None, description = None):
+def _search(controler, start = None, end = None, activity = None, category = None, tag = None, description = None):
     """
     Search facts machting given timerange and search term. Both are optional.
 
@@ -258,26 +262,12 @@ def _search(controler, time_range, activity = None, category = None, tag = None,
 
         return search_list
 
+    # Convert the start and time strings to datetimes.
+    if start:
+        start = datetime.datetime.strptime(start, '%Y-%m-%d %H:%M')
+    if end:
+        end = datetime.datetime.strptime(end, '%Y-%m-%d %H:%M')
 
-    # [FIXME]
-    # As far as our backend is concerned search_term as well as time range are
-    # optional. If the same is true for legacy hamster-cli needs to be checked.
-    if not time_range:
-        start, end = (None, None)
-    else:
-        # [FIXME]
-        # This is a rather crude fix. Recent versions of ``hamster-lib`` do not
-        # provide a dedicated helper to parse *just* time(ranges) but expect a
-        # ``raw_fact`` text. In order to work around this we just append
-        # whitespaces to our time range argument which will qualify for the
-        # desired parsing.
-        # Once raw_fact/time parsing has been refactored in hamster-lib, this
-        # should no longer be needed.
-        time_range = time_range + '  '
-        timeinfo = time_helpers.extract_time_info(time_range)[0]
-        start, end = time_helpers.complete_timeframe(timeinfo, controler.config)
-
-    #results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
     results = controler.facts.get_all(start=start, end=end)
 
     if activity:
@@ -321,16 +311,18 @@ def _search(controler, time_range, activity = None, category = None, tag = None,
 
         results = search_facts(search_tree, results, 'description')
 
-    table, headers = _generate_facts_table(results)
-    click.echo(tabulate(table, headers=headers))
+    return results
 
 
 @run.command(help=help_strings.LIST_HELP)
-@click.argument('time_range', default='')
+@click.option('-s', '--start', help = 'The start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The end time string (e.g. "2017-02-01 00:00").')
 @pass_controler
-def list(controler, time_range):
+def list(controler, start, end):
     """List all facts within a timerange."""
-    _search(controler, time_range=time_range)
+    results = _search(controler, start = start, end = end)
+    table, headers = _generate_facts_table(results)
+    click.echo(tabulate(table, headers=headers))
 
 
 @run.command(help=help_strings.START_HELP)
@@ -492,13 +484,17 @@ def _cancel(controler):
 @click.argument('format', nargs=1, default='csv')
 @click.argument('start', nargs=1, default='')
 @click.argument('end', nargs=1, default='')
+@click.option('-a', '--activity', help = "The search string applied to activity names.")
+@click.option('-c', '--category', help = "The search string applied to category names.")
+@click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
+@click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
 @pass_controler
-def export(controler, format, start, end):
+def export(controler, format, start, end, activity, category, tag, description):
     """Export all facts of within a given timewindow to a file of specified format."""
     _export(controler, format, start, end)
 
 
-def _export(controler, format, start, end):
+def _export(controler, format, start, end, activity = None, category = None, tag = None, description = None):
     """
     Export all facts in the given timeframe in the format specified.
 
@@ -527,7 +523,13 @@ def _export(controler, format, start, end):
         end = None
 
     filepath = controler.client_config['export_path']
-    facts = controler.facts.get_all(start=start, end=end)
+    #facts = controler.facts.get_all(start=start, end=end)
+    facts = _search(controler,
+                    activity = activity,
+                    category = category,
+                    tag = tag,
+                    description = description)
+
     if format == 'csv':
         writer = reports.CSVWriter(filepath)
         writer.write_report(facts)
