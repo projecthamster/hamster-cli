@@ -26,6 +26,8 @@ import os
 from collections import namedtuple
 from gettext import gettext as _
 
+import pyparsing as pp
+
 import appdirs
 import click
 import hamster_lib
@@ -151,17 +153,20 @@ def _run(controler):
 
 
 @run.command(help=help_strings.SEARCH_HELP)
-@click.argument('search_term')
 @click.argument('time_range', default='')
+@click.option('-a', '--activity', help = "The search string applied to activity names.")
+@click.option('-c', '--category', help = "The search string applied to category names.")
+@click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
+@click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
 @pass_controler
-def search(controler, search_term, time_range):
+def search(controler, activity, category, time_range, tag, description):
     """Fetch facts matching certain criteria."""
     # [FIXME]
     # Check what we actually match against.
-    _search(controler, search_term, time_range)
+    _search(controler, activity, category, time_range, tag, description)
 
 
-def _search(controler, search_term, time_range):
+def _search(controler, activity, category, time_range, tag, description):
     """
     Search facts machting given timerange and search term. Both are optional.
 
@@ -176,7 +181,84 @@ def _search(controler, search_term, time_range):
     Args:
         search_term: Term that need to be matched by the fact in order to be considered a hit.
         time_range: Only facts within this timerange will be considered.
+        tag: 
     """
+
+    def search_facts(tree, search_list, search_attr, search_sub_attr = None):
+        '''
+        '''
+        if len(tree) == 1:
+            if isinstance(tree[0], (str, unicode)):
+                l_term = tree[0]
+                if search_sub_attr:
+                    search_list = [fact for fact in search_list if l_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and l_term.lower() in getattr(fact, search_attr).lower()]
+            else:
+                search_list = search_facts(tree[0], search_list, search_attr, search_sub_attr)
+        elif len(tree) == 3:
+            l_term = tree[0]
+            r_term = tree[2]
+            op = tree[1]
+
+            if isinstance(l_term, (str, unicode)):
+                if search_sub_attr:
+                    l_search_list = [fact for fact in search_list if l_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    l_search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and l_term.lower() in getattr(fact, search_attr).name.lower()]
+            else:
+                l_search_list = search_facts(l_term, search_list, search_attr, search_sub_attr)
+
+            if isinstance(r_term, (str, unicode)):
+                if search_sub_attr:
+                    r_search_list = [fact for fact in search_list if r_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    r_search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and r_term.lower() in getattr(fact, search_attr).name.lower()]
+            else:
+                r_search_list = search_facts(r_term, search_list, search_attr, search_sub_attr)
+
+            if op == 'AND':
+                search_list = [x for x in l_search_list if x in r_search_list]
+            elif op == 'OR':
+                search_list = l_search_list
+                search_list.extend(r_search_list)
+
+        return search_list
+
+
+    def search_tags(tree, search_list):
+        '''
+        '''
+        if len(tree) == 1:
+            if isinstance(tree[0], (str, unicode)):
+                l_term = tree[0]
+                search_list = [fact for fact in search_list if l_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                search_list = search_tags(tree[0], search_list)
+        elif len(tree) == 3:
+            l_term = tree[0]
+            r_term = tree[2]
+            op = tree[1]
+
+            if isinstance(l_term, (str, unicode)):
+                l_search_list = [fact for fact in search_list if l_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                l_search_list = search_tags(l_term, search_list)
+
+            if isinstance(r_term, (str, unicode)):
+                r_search_list = [fact for fact in search_list if r_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                r_search_list = search_tags(r_term, search_list)
+
+            if op == 'AND':
+                search_list = [x for x in l_search_list if x in r_search_list]
+            elif op == 'OR':
+                search_list = l_search_list
+                search_list.extend(r_search_list)
+
+        return search_list
+
+
     # [FIXME]
     # As far as our backend is concerned search_term as well as time range are
     # optional. If the same is true for legacy hamster-cli needs to be checked.
@@ -195,7 +277,49 @@ def _search(controler, search_term, time_range):
         timeinfo = time_helpers.extract_time_info(time_range)[0]
         start, end = time_helpers.complete_timeframe(timeinfo, controler.config)
 
-    results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
+    #results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
+    results = controler.facts.get_all(start=start, end=end)
+
+    if activity:
+        identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+        expr = pp.operatorPrecedence(baseExpr = identifier,
+                                     opList = [("AND", 2, pp.opAssoc.LEFT, ),
+                                               ("OR", 2, pp.opAssoc.LEFT, ),])
+        search_tree = expr.parseString(activity)
+
+        results = search_facts(search_tree, results, 'activity', 'name')
+
+    if category:
+        identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+        expr = pp.operatorPrecedence(baseExpr = identifier,
+                                     opList = [("AND", 2, pp.opAssoc.LEFT, ),
+                                               ("OR", 2, pp.opAssoc.LEFT, ),])
+        search_tree = expr.parseString(category)
+
+        results = search_facts(search_tree, results, 'category', 'name')
+
+
+    if tag:
+        identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+        expr = pp.operatorPrecedence(baseExpr = identifier,
+                                     opList = [("AND", 2, pp.opAssoc.LEFT, ),
+                                               ("OR", 2, pp.opAssoc.LEFT, ),])
+        search_tree = expr.parseString(tag)
+
+        results = search_tags(search_tree, results)
+
+    if description:
+        identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+        expr = pp.operatorPrecedence(baseExpr = identifier,
+                                     opList = [("AND", 2, pp.opAssoc.LEFT, ),
+                                               ("OR", 2, pp.opAssoc.LEFT, ),])
+        search_tree = expr.parseString(description)
+
+        results = search_facts(search_tree, results, 'description')
 
     table, headers = _generate_facts_table(results)
     click.echo(tabulate(table, headers=headers))
@@ -242,6 +366,7 @@ def _start(controler, raw_fact, start, end):
             in the resulting fact in such a case.
     """
     fact = Fact.create_from_raw_fact(raw_fact)
+
     # Explicit trumps implicit!
     if start:
         fact.start = time_helpers.parse_time(start)
