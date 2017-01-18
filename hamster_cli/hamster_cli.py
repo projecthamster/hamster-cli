@@ -481,6 +481,24 @@ def _cancel(controler):
 
 
 @run.command(help=help_strings.EXPORT_HELP)
+@click.option('-s', '--start', help = 'The start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The end time string (e.g. "2017-02-01 00:00").')
+@click.option('-a', '--activity', help = "The search string applied to activity names.")
+@click.option('-c', '--category', help = "The search string applied to category names.")
+@click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
+@click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
+@pass_controler
+def remove(controler, start, end, activity, category, tag, description):
+    """Export all facts of within a given timewindow to a file of specified format."""
+    facts = _search(controler, start, end, activity, category, tag, description)
+    table, headers = _generate_facts_table(facts)
+    click.echo(tabulate(table, headers=headers))
+    if click.confirm('Do you really want to delete the facts listed above?', abort = True):
+        for cur_fact in facts:
+            controler.facts.remove(cur_fact)
+
+
+@run.command(help=help_strings.EXPORT_HELP)
 @click.argument('format', nargs=1, default='csv')
 @click.argument('start', nargs=1, default='')
 @click.argument('end', nargs=1, default='')
