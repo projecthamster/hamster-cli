@@ -166,7 +166,7 @@ def search(controler, activity, category, time_range, tag, description):
     _search(controler, activity, category, time_range, tag, description)
 
 
-def _search(controler, activity, category, time_range, tag, description):
+def _search(controler, time_range, activity = None, category = None, tag = None, description = None):
     """
     Search facts machting given timerange and search term. Both are optional.
 
@@ -330,7 +330,7 @@ def _search(controler, activity, category, time_range, tag, description):
 @pass_controler
 def list(controler, time_range):
     """List all facts within a timerange."""
-    _search(controler, search_term='', time_range=time_range)
+    _search(controler, time_range=time_range)
 
 
 @run.command(help=help_strings.START_HELP)
@@ -513,7 +513,7 @@ def _export(controler, format, start, end):
     Raises:
         click.Exception: If format is not recognized.
     """
-    accepted_formats = ['csv', 'ical', 'xml']
+    accepted_formats = ['csv', 'tsv', 'ical', 'xml']
     # [TODO]
     # Once hamster_lib has a proper 'export' register available we should be able
     # to streamline this.
@@ -529,6 +529,10 @@ def _export(controler, format, start, end):
     filepath = controler.client_config['export_path']
     facts = controler.facts.get_all(start=start, end=end)
     if format == 'csv':
+        writer = reports.CSVWriter(filepath)
+        writer.write_report(facts)
+        click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
+    elif format == 'tsv':
         writer = reports.TSVWriter(filepath)
         writer.write_report(facts)
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
