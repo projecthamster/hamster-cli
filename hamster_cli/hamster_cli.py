@@ -488,13 +488,14 @@ def _cancel(controler):
 @click.option('-c', '--category', help = "The search string applied to category names.")
 @click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
 @click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
+@click.option('-f', '--filename', help = "The filename where to store the export file.")
 @pass_controler
-def export(controler, format, start, end, activity, category, tag, description):
+def export(controler, format, start, end, activity, category, tag, description, filename):
     """Export all facts of within a given timewindow to a file of specified format."""
-    _export(controler, format, start, end)
+    _export(controler, format, start, end, activity, category, tag, description, filename)
 
 
-def _export(controler, format, start, end, activity = None, category = None, tag = None, description = None):
+def _export(controler, format, start, end, activity = None, category = None, tag = None, description = None, filename = None):
     """
     Export all facts in the given timeframe in the format specified.
 
@@ -522,7 +523,12 @@ def _export(controler, format, start, end, activity = None, category = None, tag
     if not end:
         end = None
 
-    filepath = controler.client_config['export_path']
+    if filename:
+        filepath = filename
+    else:
+        filepath = controler.client_config['export_path']
+        filepath = filepath + '.' + format
+
     #facts = controler.facts.get_all(start=start, end=end)
     facts = _search(controler,
                     activity = activity,
