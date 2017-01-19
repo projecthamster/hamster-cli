@@ -202,6 +202,20 @@ def _search(controler, start = None, end = None, activity = None, category = Non
                     search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and l_term.lower() in getattr(fact, search_attr).lower()]
             else:
                 search_list = search_facts(tree[0], search_list, search_attr, search_sub_attr)
+
+        if len(tree) == 2:
+            # This is the NOT operator.
+            op = tree[0]
+            r_term = tree[1]
+            if isinstance(r_term, (str, unicode)):
+                if search_sub_attr:
+                    r_search_list = [fact for fact in search_list if r_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    r_search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and r_term.lower() in getattr(fact, search_attr).lower()]
+            else:
+                r_search_list = search_facts(r_term, search_list, search_attr, search_sub_attr)
+            search_list = [x for x in search_list if x not in r_search_list]
+
         elif len(tree) == 3:
             l_term = tree[0]
             r_term = tree[2]
@@ -241,6 +255,16 @@ def _search(controler, start = None, end = None, activity = None, category = Non
                 search_list = [fact for fact in search_list if l_term.lower() in [x.name.lower() for x in fact.tags]]
             else:
                 search_list = search_tags(tree[0], search_list)
+        elif len(tree) == 2:
+            # This is the NOT operator.
+            op = tree[0]
+            r_term = tree[1]
+            if isinstance(r_term, (str, unicode)):
+                r_search_list = [fact for fact in search_list if r_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                r_search_list = search_tags(r_term, search_list)
+
+            search_list = [x for x in search_list if x not in r_search_list]
         elif len(tree) == 3:
             l_term = tree[0]
             r_term = tree[2]
@@ -279,7 +303,8 @@ def _search(controler, start = None, end = None, activity = None, category = Non
             identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
 
             expr = pp.operatorPrecedence(baseExpr = identifier,
-                                         opList = [("AND", 2, pp.opAssoc.LEFT, ),
+                                         opList = [("NOT", 1, pp.opAssoc.RIGHT, ),
+                                                   ("AND", 2, pp.opAssoc.LEFT, ),
                                                    ("OR", 2, pp.opAssoc.LEFT, ),])
             search_tree = expr.parseString(activity)
 
@@ -300,8 +325,9 @@ def _search(controler, start = None, end = None, activity = None, category = Non
             identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
 
             expr = pp.operatorPrecedence(baseExpr = identifier,
-                                         opList = [("AND", 2, pp.opAssoc.LEFT, ),
-                                                   ("OR", 2, pp.opAssoc.LEFT, ),])
+                                         opList = [("NOT", 1, pp.opAssoc.RIGHT, ),
+                                                   ("AND", 2, pp.opAssoc.LEFT, ),
+                                                   ("OR", 2, pp.opAssoc.LEFT, )])
             search_tree = expr.parseString(tag)
 
             results = search_tags(search_tree, results)
