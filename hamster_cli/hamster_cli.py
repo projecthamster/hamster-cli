@@ -26,6 +26,8 @@ import os
 from collections import namedtuple
 from gettext import gettext as _
 
+import pyparsing as pp
+
 import appdirs
 import click
 import hamster_lib
@@ -38,6 +40,9 @@ from hamster_lib.helpers import time as time_helpers
 from tabulate import tabulate
 
 from . import help_strings
+
+# Disable the python_2_unicode_compatible future import warning.
+click.disable_unicode_literals_warning = True
 
 
 class HamsterAppDirs(appdirs.AppDirs):
@@ -148,17 +153,26 @@ def _run(controler):
 
 
 @run.command(help=help_strings.SEARCH_HELP)
-@click.argument('search_term')
-@click.argument('time_range', default='')
+#@click.argument('time_range', default='')
+@click.option('-s', '--start', help = 'The start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The end time string (e.g. "2017-02-01 00:00").')
+@click.option('-a', '--activity', help = "The search string applied to activity names.")
+@click.option('-c', '--category', help = "The search string applied to category names.")
+@click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
+@click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
+@click.option('-k', '--key', help = 'The database key of the fact.')
 @pass_controler
-def search(controler, search_term, time_range):
+def search(controler, start, end, activity, category, tag, description, key):
     """Fetch facts matching certain criteria."""
     # [FIXME]
     # Check what we actually match against.
-    _search(controler, search_term, time_range)
+    results = _search(controler, start, end, activity, category, tag, description, key)
+    table, headers = _generate_facts_table(results)
+    click.echo(tabulate(table, headers=headers))
 
 
-def _search(controler, search_term, time_range):
+def _search(controler, start = None, end = None, activity = None, category = None,
+            tag = None, description = None, key = None):
     """
     Search facts machting given timerange and search term. Both are optional.
 
@@ -173,37 +187,173 @@ def _search(controler, search_term, time_range):
     Args:
         search_term: Term that need to be matched by the fact in order to be considered a hit.
         time_range: Only facts within this timerange will be considered.
+        tag: 
     """
-    # [FIXME]
-    # As far as our backend is concerned search_term as well as time range are
-    # optional. If the same is true for legacy hamster-cli needs to be checked.
-    if not time_range:
-        start, end = (None, None)
+
+    def search_facts(tree, search_list, search_attr, search_sub_attr = None):
+        '''
+        '''
+        if len(tree) == 1:
+            if isinstance(tree[0], (str, unicode)):
+                l_term = tree[0]
+                if search_sub_attr:
+                    search_list = [fact for fact in search_list if l_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and l_term.lower() in getattr(fact, search_attr).lower()]
+            else:
+                search_list = search_facts(tree[0], search_list, search_attr, search_sub_attr)
+
+        if len(tree) == 2:
+            # This is the NOT operator.
+            op = tree[0]
+            r_term = tree[1]
+            if isinstance(r_term, (str, unicode)):
+                if search_sub_attr:
+                    r_search_list = [fact for fact in search_list if r_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    r_search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and r_term.lower() in getattr(fact, search_attr).lower()]
+            else:
+                r_search_list = search_facts(r_term, search_list, search_attr, search_sub_attr)
+            search_list = [x for x in search_list if x not in r_search_list]
+
+        elif len(tree) == 3:
+            l_term = tree[0]
+            r_term = tree[2]
+            op = tree[1]
+
+            if isinstance(l_term, (str, unicode)):
+                if search_sub_attr:
+                    l_search_list = [fact for fact in search_list if l_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    l_search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and l_term.lower() in getattr(fact, search_attr).name.lower()]
+            else:
+                l_search_list = search_facts(l_term, search_list, search_attr, search_sub_attr)
+
+            if isinstance(r_term, (str, unicode)):
+                if search_sub_attr:
+                    r_search_list = [fact for fact in search_list if r_term.lower() in getattr(getattr(fact, search_attr), search_sub_attr).lower()]
+                else:
+                    r_search_list = [fact for fact in search_list if getattr(fact, search_attr) is not None and r_term.lower() in getattr(fact, search_attr).name.lower()]
+            else:
+                r_search_list = search_facts(r_term, search_list, search_attr, search_sub_attr)
+
+            if op == 'AND':
+                search_list = [x for x in l_search_list if x in r_search_list]
+            elif op == 'OR':
+                search_list = l_search_list
+                search_list.extend(r_search_list)
+
+        return search_list
+
+
+    def search_tags(tree, search_list):
+        '''
+        '''
+        if len(tree) == 1:
+            if isinstance(tree[0], (str, unicode)):
+                l_term = tree[0]
+                search_list = [fact for fact in search_list if l_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                search_list = search_tags(tree[0], search_list)
+        elif len(tree) == 2:
+            # This is the NOT operator.
+            op = tree[0]
+            r_term = tree[1]
+            if isinstance(r_term, (str, unicode)):
+                r_search_list = [fact for fact in search_list if r_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                r_search_list = search_tags(r_term, search_list)
+
+            search_list = [x for x in search_list if x not in r_search_list]
+        elif len(tree) == 3:
+            l_term = tree[0]
+            r_term = tree[2]
+            op = tree[1]
+
+            if isinstance(l_term, (str, unicode)):
+                l_search_list = [fact for fact in search_list if l_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                l_search_list = search_tags(l_term, search_list)
+
+            if isinstance(r_term, (str, unicode)):
+                r_search_list = [fact for fact in search_list if r_term.lower() in [x.name.lower() for x in fact.tags]]
+            else:
+                r_search_list = search_tags(r_term, search_list)
+
+            if op == 'AND':
+                search_list = [x for x in l_search_list if x in r_search_list]
+            elif op == 'OR':
+                search_list = l_search_list
+                search_list.extend(r_search_list)
+
+        return search_list
+
+    if key:
+        results = [controler.facts.get(pk = key),]
     else:
-        # [FIXME]
-        # This is a rather crude fix. Recent versions of ``hamster-lib`` do not
-        # provide a dedicated helper to parse *just* time(ranges) but expect a
-        # ``raw_fact`` text. In order to work around this we just append
-        # whitespaces to our time range argument which will qualify for the
-        # desired parsing.
-        # Once raw_fact/time parsing has been refactored in hamster-lib, this
-        # should no longer be needed.
-        time_range = time_range + '  '
-        timeinfo = time_helpers.extract_time_info(time_range)[0]
-        start, end = time_helpers.complete_timeframe(timeinfo, controler.config)
+        # Convert the start and time strings to datetimes.
+        if start:
+            start = datetime.datetime.strptime(start, '%Y-%m-%d %H:%M')
+        if end:
+            end = datetime.datetime.strptime(end, '%Y-%m-%d %H:%M')
 
-    results = controler.facts.get_all(filter_term=search_term, start=start, end=end)
+        results = controler.facts.get_all(start=start, end=end)
 
-    table, headers = _generate_facts_table(results)
-    click.echo(tabulate(table, headers=headers))
+        if activity:
+            identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+            expr = pp.operatorPrecedence(baseExpr = identifier,
+                                         opList = [("NOT", 1, pp.opAssoc.RIGHT, ),
+                                                   ("AND", 2, pp.opAssoc.LEFT, ),
+                                                   ("OR", 2, pp.opAssoc.LEFT, ),])
+            search_tree = expr.parseString(activity)
+
+            results = search_facts(search_tree, results, 'activity', 'name')
+
+        if category:
+            identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+            expr = pp.operatorPrecedence(baseExpr = identifier,
+                                         opList = [("AND", 2, pp.opAssoc.LEFT, ),
+                                                   ("OR", 2, pp.opAssoc.LEFT, ),])
+            search_tree = expr.parseString(category)
+
+            results = search_facts(search_tree, results, 'category', 'name')
+
+
+        if tag:
+            identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+            expr = pp.operatorPrecedence(baseExpr = identifier,
+                                         opList = [("NOT", 1, pp.opAssoc.RIGHT, ),
+                                                   ("AND", 2, pp.opAssoc.LEFT, ),
+                                                   ("OR", 2, pp.opAssoc.LEFT, )])
+            search_tree = expr.parseString(tag)
+
+            results = search_tags(search_tree, results)
+
+        if description:
+            identifier = pp.Word(pp.alphanums + pp.alphas8bit + '_' + '-')
+
+            expr = pp.operatorPrecedence(baseExpr = identifier,
+                                         opList = [("AND", 2, pp.opAssoc.LEFT, ),
+                                                   ("OR", 2, pp.opAssoc.LEFT, ),])
+            search_tree = expr.parseString(description)
+
+            results = search_facts(search_tree, results, 'description')
+
+    return results
 
 
 @run.command(help=help_strings.LIST_HELP)
-@click.argument('time_range', default='')
+@click.option('-s', '--start', help = 'The start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The end time string (e.g. "2017-02-01 00:00").')
 @pass_controler
-def list(controler, time_range):
+def list(controler, start, end):
     """List all facts within a timerange."""
-    _search(controler, search_term='', time_range=time_range)
+    results = _search(controler, start = start, end = end)
+    table, headers = _generate_facts_table(results)
+    click.echo(tabulate(table, headers=headers))
 
 
 @run.command(help=help_strings.START_HELP)
@@ -239,6 +389,7 @@ def _start(controler, raw_fact, start, end):
             in the resulting fact in such a case.
     """
     fact = Fact.create_from_raw_fact(raw_fact)
+
     # Explicit trumps implicit!
     if start:
         fact.start = time_helpers.parse_time(start)
@@ -322,7 +473,11 @@ def _stop(controler):
         )
         raise click.ClickException(message)
     else:
-        message = '{fact} ({duration} minutes)'.format(fact=fact, duration=fact.get_string_delta())
+        #message = '{fact} ({duration} minutes)'.format(fact=str(fact), duration=fact.get_string_delta())
+        start = fact.start.strftime("%Y-%m-%d %H:%M")
+        end = fact.end.strftime("%Y-%m-%d %H:%M")
+        fact_string = u'{0:s} to {1:s} {2:s}@{3:s}'.format(start, end, fact.activity.name, fact.category.name)
+        message = "Stopped {fact} ({duration} minutes).".format(fact = fact_string,duration = fact.get_string_delta())
         controler.client_logger.info(_(message))
         click.echo(_(message))
 
@@ -357,16 +512,103 @@ def _cancel(controler):
 
 
 @run.command(help=help_strings.EXPORT_HELP)
+@click.option('-s', '--start', help = 'The start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The end time string (e.g. "2017-02-01 00:00").')
+@click.option('-a', '--activity', help = "The search string applied to activity names.")
+@click.option('-c', '--category', help = "The search string applied to category names.")
+@click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
+@click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
+@click.option('-k', '--key', help = 'The database key of the fact.')
+@pass_controler
+def remove(controler, start, end, activity, category, tag, description, key):
+    """Export all facts of within a given timewindow to a file of specified format."""
+    facts = _search(controler, start, end, activity, category, tag, description, key)
+    table, headers = _generate_facts_table(facts)
+    click.echo(tabulate(table, headers=headers))
+    if click.confirm('Do you really want to delete the facts listed above?', abort = True):
+        for cur_fact in facts:
+            controler.facts.remove(cur_fact)
+
+
+@run.command(help=help_strings.EXPORT_HELP)
+@click.argument('tag_name', nargs=1, default = None)
+@click.option('-s', '--start', help = 'The start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The end time string (e.g. "2017-02-01 00:00").')
+@click.option('-a', '--activity', help = "The search string applied to activity names.")
+@click.option('-c', '--category', help = "The search string applied to category names.")
+@click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
+@click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
+@click.option('-k', '--key', help = 'The database key of the fact.')
+@click.option('-r', '--remove', is_flag=True, help = 'Set this flag to remove the specified tag_name from the selected facts.')
+@pass_controler
+def tag(controler, tag_name, start, end, activity, category, tag, description, key, remove):
+    """Export all facts of within a given timewindow to a file of specified format."""
+    facts = _search(controler, start, end, activity, category, tag, description, key)
+    table, headers = _generate_facts_table(facts)
+    click.echo(tabulate(table, headers=headers))
+
+    if remove:
+        if click.confirm('Do you really want to REMOVE the tag #%s to the facts listed above?' % tag_name, abort = True):
+            for cur_fact in facts:
+                cur_fact.tags = [x for x in cur_fact.tags if x.name != tag_name]
+                controler.facts._update(cur_fact)
+    else:
+        if click.confirm('Do you really want to ADD the tag #%s to the facts listed above?' % tag_name, abort = True):
+            for cur_fact in facts:
+                cur_fact.tags.append(hamster_lib.Tag(name = tag_name))
+                controler.facts._update(cur_fact)
+
+
+@run.command(help=help_strings.EXPORT_HELP)
+@click.argument('key', nargs=1)
+@click.option('-s', '--start', help = 'The new start time string (e.g. "2017-01-01 00:00").')
+@click.option('-e', '--end', help = 'The new end time string (e.g. "2017-02-01 00:00").')
+@click.option('-a', '--activity', help = "The new activity.")
+@click.option('-c', '--category', help = "The new category.")
+@click.option('-d', '--description', help = 'The new description.')
+@pass_controler
+def edit(controler, key, start, end, activity, category, description):
+    """Export all facts of within a given timewindow to a file of specified format."""
+    fact = controler.facts.get(pk = key)
+
+    if fact:
+        if start:
+            start = datetime.datetime.strptime(start, '%Y-%m-%d %H:%M')
+            fact.start = start
+
+        if end:
+            end = datetime.datetime.strptime(end, '%Y-%m-%d %H:%M')
+            fact.end = end
+
+        if activity and category:
+            fact.activity = hamster_lib.Activity(name = activity, category = category)
+        elif activity or category:
+            click.echo('Please specify an activity AND a category.')
+
+        if description:
+            fact.description = description
+
+        controler.facts._update(fact)
+
+
+
+@run.command(help=help_strings.EXPORT_HELP)
 @click.argument('format', nargs=1, default='csv')
 @click.argument('start', nargs=1, default='')
 @click.argument('end', nargs=1, default='')
+@click.option('-a', '--activity', help = "The search string applied to activity names.")
+@click.option('-c', '--category', help = "The search string applied to category names.")
+@click.option('-t', '--tag', help = 'The tags search string (e.g. "tag1 AND (tag2 OR tag3)".')
+@click.option('-d', '--description', help = 'The description search string (e.g. "string1 OR (string2 AND string3).')
+@click.option('-k', '--key', help = 'The database key of the fact.')
+@click.option('-f', '--filename', help = "The filename where to store the export file.")
 @pass_controler
-def export(controler, format, start, end):
+def export(controler, format, start, end, activity, category, tag, description, key, filename):
     """Export all facts of within a given timewindow to a file of specified format."""
-    _export(controler, format, start, end)
+    _export(controler, format, start, end, activity, category, tag, description, key, filename)
 
 
-def _export(controler, format, start, end):
+def _export(controler, format, start, end, activity = None, category = None, tag = None, description = None, filename = None):
     """
     Export all facts in the given timeframe in the format specified.
 
@@ -381,7 +623,7 @@ def _export(controler, format, start, end):
     Raises:
         click.Exception: If format is not recognized.
     """
-    accepted_formats = ['csv', 'ical', 'xml']
+    accepted_formats = ['csv', 'tsv', 'ical', 'xml']
     # [TODO]
     # Once hamster_lib has a proper 'export' register available we should be able
     # to streamline this.
@@ -394,9 +636,24 @@ def _export(controler, format, start, end):
     if not end:
         end = None
 
-    filepath = controler.client_config['export_path']
-    facts = controler.facts.get_all(start=start, end=end)
+    if filename:
+        filepath = filename
+    else:
+        filepath = controler.client_config['export_path']
+        filepath = filepath + '.' + format
+
+    #facts = controler.facts.get_all(start=start, end=end)
+    facts = _search(controler,
+                    activity = activity,
+                    category = category,
+                    tag = tag,
+                    description = description)
+
     if format == 'csv':
+        writer = reports.CSVWriter(filepath)
+        writer.write_report(facts)
+        click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
+    elif format == 'tsv':
         writer = reports.TSVWriter(filepath)
         writer.write_report(facts)
         click.echo(_("Facts have been exported to: {path}".format(path=filepath)))
@@ -811,15 +1068,17 @@ def _generate_facts_table(facts):
     """
     # If you want to change the order just adjust the dict.
     headers = {
+        'key': _("Key"),
         'start': _("Start"),
         'end': _("End"),
         'activity': _("Activity"),
         'category': _("Category"),
+        'tags': _("Tags"),
         'description': _("Description"),
         'delta': _("Duration")
     }
 
-    columns = ('start', 'end', 'activity', 'category', 'description',
+    columns = ('key', 'start', 'end', 'activity', 'category', 'tags', 'description',
         'delta')
 
     header = [headers[column] for column in columns]
@@ -833,10 +1092,18 @@ def _generate_facts_table(facts):
         else:
             category = ''
 
+        if fact.tags:
+            tags = '#'
+            tags += '#'.join(sorted([x.name + ' ' for x in fact.tags]))
+        else:
+            tags = ''
+
         table.append(TableRow(
+            key = fact.pk,
             activity=fact.activity.name,
             category=category,
             description=fact.description,
+            tags=tags,
             start=fact.start.strftime('%Y-%m-%d %H:%M'),
             end=fact.end.strftime('%Y-%m-%d %H:%M'),
             # [TODO]
