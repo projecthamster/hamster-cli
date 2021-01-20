@@ -9,5 +9,5 @@ pytest-faker==2.0.0
 pytest-factoryboy==2.1.0
 tox==3.21.2
 future==0.18.2
-freezegun==1.0.0
+freezegun==1.1.0
 pytest-mock==3.5.1
