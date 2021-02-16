@@ -7,7 +7,7 @@ isort==5.7.0
 pytest==6.2.2
 pytest-faker==2.0.0
 pytest-factoryboy==2.1.0
-tox==3.21.4
+tox==3.22.0
 future==0.18.2
 freezegun==1.1.0
 pytest-mock==3.5.1
