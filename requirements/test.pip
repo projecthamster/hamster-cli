@@ -3,7 +3,7 @@
 
 coverage==5.5
 fauxfactory==3.1.0
-isort==5.9.1
+isort==5.9.2
 pytest==6.2.4
 pytest-faker==2.0.0
 pytest-factoryboy==2.1.0
